@@ -30,6 +30,8 @@ public partial class MainWindow : Window
     private int _dragStartWindowY;        // 拖拽起始时窗口物理像素 Y
     private int _currentMiniPixelX;       // 拖拽过程中窗口当前物理像素 X
     private int _currentMiniPixelY;       // 拖拽过程中窗口当前物理像素 Y
+    
+    int snapThreshold = 20; // 像素，可调
 
     public MainWindow()
     {
@@ -150,7 +152,7 @@ public partial class MainWindow : Window
     }
 
     [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+    private static extern IntPtr MonitorFromWindow(POINT pt, uint dwFlags);
 
     private const uint MONITOR_DEFAULTTONEAREST = 2;
 
@@ -340,9 +342,6 @@ public partial class MainWindow : Window
             int newPixelX = _dragStartWindowX + dx;
             int newPixelY = _dragStartWindowY + dy;
 
-            // 限制在显示器区域内
-            ClampToScreen(ref newPixelX, ref newPixelY);
-
             _currentMiniPixelX = newPixelX;
             _currentMiniPixelY = newPixelY;
 
@@ -360,6 +359,9 @@ public partial class MainWindow : Window
     {
         if (!_isMiniMode || !MiniModeIcon.IsMouseCaptured) return;
 
+        // 限制在显示器区域内
+        ClampToScreen(ref _currentMiniPixelX, ref _currentMiniPixelY);
+        
         MiniModeIcon.ReleaseMouseCapture();
 
         if (_isDraggingMini)
@@ -393,20 +395,26 @@ public partial class MainWindow : Window
     {
         GetCursorPos(out var cursorPixel);
 
-        int iconSizePixel = (int)(MiniIconSize * GetDpiScale().scaleX);
+        var dpi = GetDpiScale();
+        int windowWidth = (int)(ActualWidth * dpi.scaleX);
+        int windowHeight = (int)(ActualHeight * dpi.scaleY);
 
-        var monitor = MonitorFromPoint(cursorPixel, MONITOR_DEFAULTTONEAREST);
+        var monitor = MonitorFromWindow(cursorPixel, MONITOR_DEFAULTTONEAREST);
         if (monitor != IntPtr.Zero)
         {
             var info = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
             if (GetMonitorInfo(monitor, ref info))
             {
-                // 使用 rcMonitor（完整显示器区域）而非 rcWork（排除任务栏）
                 var area = info.rcMonitor;
+
                 if (pixelX < area.Left) pixelX = area.Left;
                 if (pixelY < area.Top) pixelY = area.Top;
-                if (pixelX + iconSizePixel > area.Right) pixelX = area.Right - iconSizePixel;
-                if (pixelY + iconSizePixel > area.Bottom) pixelY = area.Bottom - iconSizePixel;
+
+                if (pixelX + windowWidth > area.Right)
+                    pixelX = area.Right - windowWidth;
+
+                if (pixelY + windowHeight > area.Bottom)
+                    pixelY = area.Bottom - windowHeight;
             }
         }
     }
