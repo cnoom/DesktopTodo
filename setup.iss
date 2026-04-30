@@ -23,7 +23,6 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayName={#MyAppName}
-UninstallDisplayVersion={#MyAppVersion}
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
