@@ -1,0 +1,11 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:DesktopTodo.Converters">
+
+    <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    <converters:BooleanToTextDecorationConverter x:Key="BoolToStrikethroughConverter"/>
+    <converters:StringToBrushConverter x:Key="StringToBrushConverter"/>
+    <converters:PositiveIntToVisibilityConverter x:Key="PositiveIntToVisibilityConverter"/>
+    <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+
+</ResourceDictionary>

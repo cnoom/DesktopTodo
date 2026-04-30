@@ -1,0 +1,43 @@
+## .NET
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+## Build 结果
+publish/
+Installer/
+
+## NuGet
+**/packages/*
+*.nupkg
+**/[Pp]ackages/**
+
+## Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+## IDE
+.idea/
+*.swp
+
+## 其他
+*.log
+*.tmp

@@ -1,0 +1,67 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- ========== 功能色 ========== -->
+    <Color x:Key="PrimaryColor">#4CAF50</Color>
+    <Color x:Key="DangerColor">#FF605C</Color>
+    <Color x:Key="WarningColor">#FFBD44</Color>
+    <Color x:Key="InfoColor">#1E90FF</Color>
+    <Color x:Key="FilterActiveColor">#FF5722</Color>
+
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+    <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
+    <SolidColorBrush x:Key="FilterActiveBrush" Color="{StaticResource FilterActiveColor}"/>
+
+    <!-- ========== 半透明覆盖层（玻璃拟态效果） ========== -->
+    <SolidColorBrush x:Key="OverlayLightBrush" Color="#15FFFFFF"/>
+    <SolidColorBrush x:Key="OverlayMediumBrush" Color="#30FFFFFF"/>
+    <SolidColorBrush x:Key="OverlayStrongBrush" Color="#40FFFFFF"/>
+    <SolidColorBrush x:Key="OverlayHoverBrush" Color="#50FFFFFF"/>
+
+    <!-- ========== 选中态 ========== -->
+    <SolidColorBrush x:Key="CategorySelectedBrush" Color="#604CAF50"/>
+    <SolidColorBrush x:Key="DragHighlightBrush" Color="#601E90FF"/>
+    <SolidColorBrush x:Key="DropCategoryHighlightBrush" Color="#604CAF50"/>
+    <SolidColorBrush x:Key="DropLineBrush" Color="#1E90FF"/>
+
+    <!-- ========== 标签徽章 ========== -->
+    <SolidColorBrush x:Key="TagBadgeBackgroundBrush" Color="#40B0C4DE"/>
+    <SolidColorBrush x:Key="TagChipBackgroundBrush" Color="#30FFFFFF"/>
+    <SolidColorBrush x:Key="TagChipSelectedBackgroundBrush" Color="#60FF5722"/>
+
+    <!-- ========== 窗口边框 ========== -->
+    <SolidColorBrush x:Key="WindowBorderBrush" Color="Gray"/>
+
+    <!-- ========== 文字色（由主题控制） ========== -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="White"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#AAAAAA"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#808080"/>
+
+    <!-- ========== 树形控件专用 ========== -->
+    <SolidColorBrush x:Key="TreeToggleArrowBrush" Color="Gray"/>
+    <SolidColorBrush x:Key="TreeItemHoverBrush" Color="#20FFFFFF"/>
+    <SolidColorBrush x:Key="TreeGuideLineBrush" Color="#25FFFFFF"/>
+
+    <!-- ========== 预设背景色块 ========== -->
+    <Color x:Key="PresetColorLightGray">#F0F0F0</Color>
+    <Color x:Key="PresetColorWhite">#FFFFFF</Color>
+    <Color x:Key="PresetColorDarkBlue">#1E3A8A</Color>
+    <Color x:Key="PresetColorDarkGreen">#065F46</Color>
+    <Color x:Key="PresetColorDarkRed">#991B1B</Color>
+
+    <!-- ========== 圆角常量 ========== -->
+    <CornerRadius x:Key="CornerRadiusSmall">4</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusMedium">6</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusLarge">12</CornerRadius>
+    <CornerRadius x:Key="TagCornerRadius">6</CornerRadius>
+
+    <!-- ========== 字体大小 ========== -->
+    <system:Double x:Key="FontSizeSmall">10</system:Double>
+    <system:Double x:Key="FontSizeNormal">11</system:Double>
+    <system:Double x:Key="FontSizeMedium">12</system:Double>
+    <system:Double x:Key="FontSizeLarge">16</system:Double>
+
+</ResourceDictionary>
