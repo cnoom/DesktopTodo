@@ -5,9 +5,10 @@
 #define MyAppPublisher "DesktopTodo"
 #define MyAppExeName "DesktopTodo.exe"
 #define MyAppCopyright "Copyright (C) 2025"
+#define MyAppAppId "A1B2C3D4-E5F6-7890-ABCD-EF1234567890"
 
 [Setup]
-AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
+AppId={{{#MyAppAppId}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
@@ -54,21 +55,30 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram}"; Flags: nowait postinstall skipifsilent
 
 [Code]
+const
+  UninstallKey = 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#MyAppAppId}_is1';
+
+// 从注册表读取已安装版本号
+function GetInstalledVersion(out Version: String): Boolean;
+begin
+  Result := RegQueryStringValue(HKCU, UninstallKey, 'DisplayVersion', Version);
+  if not Result then
+    Result := RegQueryStringValue(HKLM, UninstallKey, 'DisplayVersion', Version);
+end;
+
 // 检查已安装版本，如有旧版本则提示
 function InitializeSetup(): Boolean;
 var
   InstalledVersion: String;
 begin
   Result := True;
-  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#SetupSetting("AppId")}_is1',
-    'DisplayVersion', InstalledVersion) or
-     RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#SetupSetting("AppId")}_is1',
-    'DisplayVersion', InstalledVersion) then
+  if GetInstalledVersion(InstalledVersion) then
   begin
     if InstalledVersion <> '{#MyAppVersion}' then
     begin
-      if MsgBox('检测到已安装版本：' + InstalledVersion + #13#10 + '即将安装版本：{#MyAppVersion}' + #13#10 + #13#10 + '是否继续安装？',
-        mbConfirmation, MB_YESNO) = IDNO then
+      if MsgBox('检测到已安装版本：' + InstalledVersion + #13#10 +
+        '即将安装版本：{#MyAppVersion}' + #13#10 + #13#10 +
+        '是否继续安装？', mbConfirmation, MB_YESNO) = IDNO then
         Result := False;
     end;
   end;
