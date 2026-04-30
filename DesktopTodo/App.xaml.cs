@@ -14,6 +14,7 @@ public partial class App : Application
 {
     private const string MutexName = "DesktopTodo_SingleInstance_Mutex";
     private Mutex? _mutex;
+    private bool _ownsMutex;
     private ServiceProvider _serviceProvider = null!;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -23,10 +24,13 @@ public partial class App : Application
         if (!createdNew)
         {
             // 已有实例在运行，激活已有窗口后退出
+            _ownsMutex = false;
             ActivateExistingWindow();
             Shutdown();
             return;
         }
+
+        _ownsMutex = true;
 
         base.OnStartup(e);
 
@@ -81,7 +85,8 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _mutex?.ReleaseMutex();
+        if (_ownsMutex)
+            _mutex?.ReleaseMutex();
         _mutex?.Dispose();
         _serviceProvider?.Dispose();
         base.OnExit(e);
