@@ -55,10 +55,9 @@ public partial class MainWindow : Window
     private static bool IsPositionOnScreen(double x, double y, double w, double h)
     {
         var rect = new RECT { Left = (int)x, Top = (int)y, Right = (int)(x + w), Bottom = (int)(y + h) };
+        bool found = false;
 
-        // 遍历所有显示器
-        return MonitorEnumProc callback = null!;
-        callback = (hMonitor, _, _, _) =>
+        MonitorEnumProc callback = (hMonitor, _, _, _) =>
         {
             var monitorInfo = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
             if (GetMonitorInfo(hMonitor, ref monitorInfo))
@@ -68,21 +67,14 @@ public partial class MainWindow : Window
                 if (rect.Left < work.Right && rect.Right > work.Left &&
                     rect.Top < work.Bottom && rect.Bottom > work.Top)
                 {
+                    found = true;
                     return false; // 找到交集，停止枚举
                 }
             }
             return true; // 继续枚举
         };
 
-        bool found = false;
-        MonitorEnumProc wrapper = (hMonitor, hdcMonitor, lprcMonitor, dwData) =>
-        {
-            bool continueEnum = callback(hMonitor, hdcMonitor, lprcMonitor, dwData);
-            if (!continueEnum) found = true;
-            return continueEnum;
-        };
-
-        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, wrapper, IntPtr.Zero);
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, callback, IntPtr.Zero);
         return found;
     }
 
