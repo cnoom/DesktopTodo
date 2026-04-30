@@ -37,7 +37,8 @@
     </Window.Style>
 
     <Grid>
-        <Border Background="{Binding WindowBackground}"
+        <Border x:Name="MainContentBorder"
+                Background="{Binding WindowBackground}"
                 CornerRadius="{StaticResource CornerRadiusLarge}"
                 BorderBrush="{Binding DataContext.AdaptiveBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                 BorderThickness="1">
@@ -496,6 +497,29 @@
                     </Grid>
                 </Grid>
             </Grid>
+        </Border>
+
+        <!-- 迷你模式图标（可拖拽，点击恢复窗口） -->
+        <Border x:Name="MiniModeIcon"
+                Visibility="Collapsed"
+                Width="48" Height="48"
+                Background="{Binding WindowBackground}"
+                CornerRadius="12"
+                BorderBrush="{Binding DataContext.AdaptiveBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                BorderThickness="1"
+                MouseLeftButtonDown="MiniModeIcon_MouseLeftButtonDown"
+                MouseMove="MiniModeIcon_MouseMove"
+                MouseLeftButtonUp="MiniModeIcon_MouseLeftButtonUp"
+                Cursor="Hand"
+                ToolTip="点击恢复窗口 | 拖拽移动位置"
+                RenderTransformOrigin="0.5,0.5">
+            <Border.RenderTransform>
+                <ScaleTransform x:Name="MiniIconScale" ScaleX="1" ScaleY="1"/>
+            </Border.RenderTransform>
+            <TextBlock Text="✔" FontSize="22"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Foreground="{Binding DataContext.AdaptiveForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                       Opacity="0.7"/>
         </Border>
 
         <!-- 外观设置弹窗 -->

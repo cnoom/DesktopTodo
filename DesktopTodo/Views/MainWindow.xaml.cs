@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using DesktopTodo.Helpers;
 using DesktopTodo.Services;
 using DesktopTodo.ViewModels;
@@ -14,6 +15,17 @@ public partial class MainWindow : Window
 {
     private MainViewModel VM => (MainViewModel)DataContext;
     private ISettingsService _settings = null!;
+
+    // 迷你模式状态
+    private bool _isMiniMode;
+    private double _normalLeft, _normalTop, _normalWidth, _normalHeight;
+    private const double MiniIconSize = 48;
+
+    // 迷你模式拖拽
+    private bool _isDraggingMini;
+    private Point _dragStartPoint;
+    private double _dragStartLeft;
+    private double _dragStartTop;
 
     public MainWindow()
     {
@@ -85,8 +97,15 @@ public partial class MainWindow : Window
     {
         if (_settings == null) return;
 
-        // 最小化时不保存位置（保留上一次的有效值）
-        if (WindowState == WindowState.Minimized) return;
+        // 迷你模式下保存正常模式的尺寸
+        if (_isMiniMode)
+        {
+            _settings.WindowLeft = _normalLeft;
+            _settings.WindowTop = _normalTop;
+            _settings.WindowWidth = _normalWidth;
+            _settings.WindowHeight = _normalHeight;
+            return;
+        }
 
         _settings.WindowLeft = Left;
         _settings.WindowTop = Top;
@@ -119,6 +138,18 @@ public partial class MainWindow : Window
     [DllImport("user32.dll")]
     private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+
     #endregion
 
     /// <summary>
@@ -144,11 +175,230 @@ public partial class MainWindow : Window
 
     private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // 迷你模式下不响应窗口拖拽
+        if (_isMiniMode) return;
         if (e.ButtonState == MouseButtonState.Pressed) DragMove();
     }
 
-    private void MinimizeClick(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+    private void MinimizeClick(object sender, RoutedEventArgs e)
+    {
+        EnterMiniMode();
+    }
+
     private void CloseClick(object sender, RoutedEventArgs e) => Close();
+
+    #region 迷你模式
+
+    /// <summary>
+    /// 进入迷你模式：缩小为小图标，保持桌面嵌入
+    /// </summary>
+    private void EnterMiniMode()
+    {
+        if (_isMiniMode) return;
+
+        // 保存正常模式下的窗口位置和尺寸
+        _normalLeft = Left;
+        _normalTop = Top;
+        _normalWidth = Width;
+        _normalHeight = Height;
+
+        _isMiniMode = true;
+
+        // 隐藏主内容，显示迷你图标
+        MainContentBorder.Visibility = Visibility.Collapsed;
+        MiniModeIcon.Visibility = Visibility.Visible;
+
+        // 切换为 NoResize 消除隐形调整边框，使窗口尺寸精确匹配内容
+        ResizeMode = ResizeMode.NoResize;
+
+        // 禁用边缘调整大小辅助，避免 48x48 窗口中 WM_NCHITTEST 干扰拖拽
+        WindowResizeHelper.SetEnabled(false);
+
+        // 固定小窗口尺寸
+        Width = MiniIconSize;
+        Height = MiniIconSize;
+
+        // 读取保存的迷你模式位置，校验是否在屏幕范围内
+        if (_settings != null && !double.IsNaN(_settings.MiniModeLeft) && !double.IsNaN(_settings.MiniModeTop))
+        {
+            if (IsPositionOnScreen(_settings.MiniModeLeft, _settings.MiniModeTop, MiniIconSize, MiniIconSize))
+            {
+                Left = _settings.MiniModeLeft;
+                Top = _settings.MiniModeTop;
+            }
+            else
+            {
+                SetDefaultMiniPosition();
+            }
+        }
+        else
+        {
+            SetDefaultMiniPosition();
+        }
+    }
+
+    /// <summary>
+    /// 设置迷你模式默认位置（原窗口中心）
+    /// </summary>
+    private void SetDefaultMiniPosition()
+    {
+        Left = _normalLeft + (_normalWidth - MiniIconSize) / 2;
+        Top = _normalTop + (_normalHeight - MiniIconSize) / 2;
+    }
+
+    /// <summary>
+    /// 退出迷你模式：恢复窗口大小和位置
+    /// </summary>
+    private void ExitMiniMode()
+    {
+        if (!_isMiniMode) return;
+        _isMiniMode = false;
+
+        // 隐藏迷你图标
+        MiniModeIcon.Visibility = Visibility.Collapsed;
+
+        // 恢复尺寸和位置
+        Width = _normalWidth;
+        Height = _normalHeight;
+        Left = _normalLeft;
+        Top = _normalTop;
+
+        // 恢复主内容
+        MainContentBorder.Visibility = Visibility.Visible;
+
+        // 恢复可调整大小模式
+        ResizeMode = ResizeMode.CanResize;
+
+        // 重新启用边缘调整大小辅助
+        WindowResizeHelper.SetEnabled(true);
+    }
+
+    /// <summary>
+    /// 迷你图标鼠标按下：准备拖拽
+    /// </summary>
+    private void MiniModeIcon_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isMiniMode) return;
+
+        _isDraggingMini = false;
+        _dragStartPoint = e.GetPosition(this);
+        _dragStartLeft = Left;
+        _dragStartTop = Top;
+
+        MiniModeIcon.CaptureMouse();
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// 迷你图标鼠标移动：拖拽中
+    /// </summary>
+    private void MiniModeIcon_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_isMiniMode || e.LeftButton != MouseButtonState.Pressed || !MiniModeIcon.IsMouseCaptured)
+            return;
+
+        var currentPoint = e.GetPosition(this);
+        double dx = currentPoint.X - _dragStartPoint.X;
+        double dy = currentPoint.Y - _dragStartPoint.Y;
+
+        // 超过 3 像素判定为拖拽（避免误触）
+        if (!_isDraggingMini && (Math.Abs(dx) > 3 || Math.Abs(dy) > 3))
+        {
+            _isDraggingMini = true;
+        }
+
+        if (_isDraggingMini)
+        {
+            double newLeft = _dragStartLeft + dx;
+            double newTop = _dragStartTop + dy;
+
+            // 限制在屏幕工作区域内
+            ClampToScreen(ref newLeft, ref newTop);
+
+            Left = newLeft;
+            Top = newTop;
+        }
+    }
+
+    /// <summary>
+    /// 迷你图标鼠标释放：结束拖拽或点击恢复
+    /// </summary>
+    private void MiniModeIcon_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isMiniMode || !MiniModeIcon.IsMouseCaptured) return;
+
+        MiniModeIcon.ReleaseMouseCapture();
+
+        if (_isDraggingMini)
+        {
+            // 拖拽结束，保存位置
+            if (_settings != null)
+            {
+                _settings.MiniModeLeft = Left;
+                _settings.MiniModeTop = Top;
+                _settings.Save();
+            }
+            _isDraggingMini = false;
+        }
+        else
+        {
+            // 非拖拽 = 单击 → 恢复窗口
+            ExitMiniMode();
+        }
+
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// 将位置限制在当前显示器的工作区域内
+    /// </summary>
+    private void ClampToScreen(ref double left, ref double top)
+    {
+        // 获取当前鼠标所在显示器的工作区域
+        var workArea = SystemParameters.WorkArea;
+
+        // 使用窗口中心点判断所在显示器
+        var centerX = left + MiniIconSize / 2;
+        var centerY = top + MiniIconSize / 2;
+
+        // 尝试获取精确的显示器工作区域
+        var source = PresentationSource.FromVisual(this);
+        double dpiScaleX = 1.0, dpiScaleY = 1.0;
+        if (source?.CompositionTarget != null)
+        {
+            dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
+            dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
+        }
+
+        var pixelPoint = new POINT
+        {
+            X = (int)(centerX * dpiScaleX),
+            Y = (int)(centerY * dpiScaleY)
+        };
+
+        var monitor = MonitorFromPoint(pixelPoint, MONITOR_DEFAULTTONEAREST);
+        if (monitor != IntPtr.Zero)
+        {
+            var info = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
+            if (GetMonitorInfo(monitor, ref info))
+            {
+                var work = info.rcWork;
+                workArea = new Rect(
+                    work.Left / dpiScaleX,
+                    work.Top / dpiScaleY,
+                    (work.Right - work.Left) / dpiScaleX,
+                    (work.Bottom - work.Top) / dpiScaleY);
+            }
+        }
+
+        // 限制不超出工作区域
+        if (left < workArea.Left) left = workArea.Left;
+        if (top < workArea.Top) top = workArea.Top;
+        if (left + MiniIconSize > workArea.Right) left = workArea.Right - MiniIconSize;
+        if (top + MiniIconSize > workArea.Bottom) top = workArea.Bottom - MiniIconSize;
+    }
+
+    #endregion
 
     /// <summary>
     /// 全局键盘快捷键处理（PreviewKeyDown 隧道事件，优于 TextBox 处理）
@@ -607,6 +857,12 @@ public partial class MainWindow : Window
         VM.FontSize = 12.0;
         VM.SetColorCommand.Execute("#F0F0F0");
         VM.SetTaskFontColorCommand.Execute("#FFFFFF");
+        // 重置迷你模式位置记录
+        if (_settings != null)
+        {
+            _settings.MiniModeLeft = double.NaN;
+            _settings.MiniModeTop = double.NaN;
+        }
         VM.SaveSettingsCommand.Execute(null);
     }
 

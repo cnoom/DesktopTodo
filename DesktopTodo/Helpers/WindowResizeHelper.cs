@@ -59,6 +59,15 @@ public static class WindowResizeHelper
     #endregion
 
     private static Window? _window;
+    private static bool _enabled = true;
+
+    /// <summary>
+    /// 启用或禁用边缘调整大小功能（迷你模式下应禁用）
+    /// </summary>
+    public static void SetEnabled(bool enabled)
+    {
+        _enabled = enabled;
+    }
 
     /// <summary>
     /// 为窗口启用边缘拖拽调整大小
@@ -107,7 +116,7 @@ public static class WindowResizeHelper
 
             case WM_NCHITTEST:
             {
-                if (_window == null) return IntPtr.Zero;
+                if (_window == null || !_enabled) return IntPtr.Zero;
 
                 // 获取鼠标在窗口客户区中的屏幕像素坐标
                 GetCursorPos(out var screenPoint);

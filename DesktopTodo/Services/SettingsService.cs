@@ -21,6 +21,10 @@ public class SettingsService : ISettingsService
     public double WindowWidth { get; set; } = double.NaN;
     public double WindowHeight { get; set; } = double.NaN;
 
+    // 迷你模式图标位置，NaN 表示"未保存过"（使用默认位置）
+    public double MiniModeLeft { get; set; } = double.NaN;
+    public double MiniModeTop { get; set; } = double.NaN;
+
     public SettingsService()
     {
         var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DesktopTodo");
@@ -81,6 +85,10 @@ public class SettingsService : ISettingsService
                 WindowWidth = ww.GetDouble();
             if (root.TryGetProperty("WindowHeight", out var wh))
                 WindowHeight = wh.GetDouble();
+            if (root.TryGetProperty("MiniModeLeft", out var mml) && mml.ValueKind != JsonValueKind.Null)
+                MiniModeLeft = mml.GetDouble();
+            if (root.TryGetProperty("MiniModeTop", out var mmt) && mmt.ValueKind != JsonValueKind.Null)
+                MiniModeTop = mmt.GetDouble();
         }
         catch { }
     }
@@ -93,12 +101,19 @@ public class SettingsService : ISettingsService
             BackgroundColor = BackgroundColor.ToString(),
             FontSize,
             TaskFontColor = TaskFontColor.ToString(),
-            WindowLeft,
-            WindowTop,
-            WindowWidth,
-            WindowHeight
+            WindowLeft = ToNullable(WindowLeft),
+            WindowTop = ToNullable(WindowTop),
+            WindowWidth = ToNullable(WindowWidth),
+            WindowHeight = ToNullable(WindowHeight),
+            MiniModeLeft = ToNullable(MiniModeLeft),
+            MiniModeTop = ToNullable(MiniModeTop)
         };
         var json = JsonSerializer.Serialize(obj, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(_settingsPath, json);
     }
+
+    /// <summary>
+    /// NaN 转为 null（避免 JSON 中出现 "NaN" 字符串）
+    /// </summary>
+    private static double? ToNullable(double value) => double.IsNaN(value) ? null : value;
 }

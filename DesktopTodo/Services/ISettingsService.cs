@@ -18,6 +18,11 @@ public interface ISettingsService
     /// <summary>窗口高度</summary>
     double WindowHeight { get; set; }
 
+    /// <summary>迷你模式图标的 X 坐标（NaN 表示未保存）</summary>
+    double MiniModeLeft { get; set; }
+    /// <summary>迷你模式图标的 Y 坐标（NaN 表示未保存）</summary>
+    double MiniModeTop { get; set; }
+
     void Save();
     void Load();
 }
