@@ -160,6 +160,9 @@ public partial class MainWindow : Window
     [DllImport("user32.dll")]
     private static extern bool GetCursorPos(out POINT lpPoint);
 
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
     private const uint SWP_NOSIZE = 0x0001;
     private const uint SWP_NOZORDER = 0x0004;
     private const uint SWP_NOACTIVATE = 0x0010;
@@ -301,10 +304,12 @@ public partial class MainWindow : Window
         _dragStartMouseX = mousePixel.X;
         _dragStartMouseY = mousePixel.Y;
 
-        // 记录窗口当前位置转为物理像素
-        var dpi = GetDpiScale();
-        _dragStartWindowX = (int)(Left * dpi.scaleX);
-        _dragStartWindowY = (int)(Top * dpi.scaleY);
+        // 用 Win32 GetWindowRect 获取窗口真实屏幕物理像素位置
+        // （不使用 WPF Left/Top 换算，因为嵌入 WorkerW 后可能存在偏移）
+        var hWnd = new WindowInteropHelper(this).Handle;
+        GetWindowRect(hWnd, out var windowRect);
+        _dragStartWindowX = windowRect.Left;
+        _dragStartWindowY = windowRect.Top;
         _currentMiniPixelX = _dragStartWindowX;
         _currentMiniPixelY = _dragStartWindowY;
 
