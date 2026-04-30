@@ -24,11 +24,12 @@ public partial class MainWindow : Window
 
     // 迷你模式拖拽
     private bool _isDraggingMini;
-    private Point _dragStartScreenPoint;  // 鼠标按下时的屏幕绝对坐标
-    private double _dragStartLeft;
-    private double _dragStartTop;
-    private double _currentMiniLeft;      // 拖拽过程中窗口当前位置
-    private double _currentMiniTop;
+    private int _dragStartMouseX;         // 鼠标按下时的屏幕物理像素 X
+    private int _dragStartMouseY;         // 鼠标按下时的屏幕物理像素 Y
+    private int _dragStartWindowX;        // 拖拽起始时窗口物理像素 X
+    private int _dragStartWindowY;        // 拖拽起始时窗口物理像素 Y
+    private int _currentMiniPixelX;       // 拖拽过程中窗口当前物理像素 X
+    private int _currentMiniPixelY;       // 拖拽过程中窗口当前物理像素 Y
 
     public MainWindow()
     {
@@ -294,30 +295,34 @@ public partial class MainWindow : Window
         if (!_isMiniMode) return;
 
         _isDraggingMini = false;
-        // 记录鼠标按下时的屏幕绝对坐标（避免窗口移动后相对坐标跳动）
-        _dragStartScreenPoint = PointToScreen(e.GetPosition(this));
-        _dragStartLeft = Left;
-        _dragStartTop = Top;
-        _currentMiniLeft = Left;
-        _currentMiniTop = Top;
+
+        // 记录鼠标按下时的屏幕物理像素坐标
+        GetCursorPos(out var mousePixel);
+        _dragStartMouseX = mousePixel.X;
+        _dragStartMouseY = mousePixel.Y;
+
+        // 记录窗口当前位置转为物理像素
+        var dpi = GetDpiScale();
+        _dragStartWindowX = (int)(Left * dpi.scaleX);
+        _dragStartWindowY = (int)(Top * dpi.scaleY);
+        _currentMiniPixelX = _dragStartWindowX;
+        _currentMiniPixelY = _dragStartWindowY;
 
         MiniModeIcon.CaptureMouse();
         e.Handled = true;
     }
 
     /// <summary>
-    /// 迷你图标鼠标移动：拖拽中（使用屏幕绝对坐标计算偏移，Win32 SetWindowPos 定位）
+    /// 迷你图标鼠标移动：拖拽中（全部在物理像素空间计算，避免 DPI 单位混乱）
     /// </summary>
     private void MiniModeIcon_MouseMove(object sender, MouseEventArgs e)
     {
         if (!_isMiniMode || e.LeftButton != MouseButtonState.Pressed || !MiniModeIcon.IsMouseCaptured)
             return;
 
-        // 获取当前鼠标的屏幕绝对坐标
-        GetCursorPos(out var screenPoint);
-
-        double dx = screenPoint.X - _dragStartScreenPoint.X;
-        double dy = screenPoint.Y - _dragStartScreenPoint.Y;
+        GetCursorPos(out var mousePixel);
+        int dx = mousePixel.X - _dragStartMouseX;
+        int dy = mousePixel.Y - _dragStartMouseY;
 
         // 超过 3 像素判定为拖拽（避免误触）
         if (!_isDraggingMini && (Math.Abs(dx) > 3 || Math.Abs(dy) > 3))
@@ -327,18 +332,19 @@ public partial class MainWindow : Window
 
         if (_isDraggingMini)
         {
-            double newLeft = _dragStartLeft + dx;
-            double newTop = _dragStartTop + dy;
+            int newPixelX = _dragStartWindowX + dx;
+            int newPixelY = _dragStartWindowY + dy;
 
-            // 限制在屏幕工作区域内
-            ClampToScreen(ref newLeft, ref newTop);
+            // 限制在显示器区域内
+            ClampToScreen(ref newPixelX, ref newPixelY);
 
-            // 记录当前位置
-            _currentMiniLeft = newLeft;
-            _currentMiniTop = newTop;
+            _currentMiniPixelX = newPixelX;
+            _currentMiniPixelY = newPixelY;
 
-            // 使用 Win32 SetWindowPos 直接定位，绕过 WPF 对嵌入子窗口的坐标修正
-            MoveWindowTo(newLeft, newTop);
+            // 直接用物理像素调用 SetWindowPos
+            var hWnd = new WindowInteropHelper(this).Handle;
+            SetWindowPos(hWnd, IntPtr.Zero, newPixelX, newPixelY, 0, 0,
+                SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
         }
     }
 
@@ -353,9 +359,10 @@ public partial class MainWindow : Window
 
         if (_isDraggingMini)
         {
-            // 将 Win32 设置的物理位置同步回 WPF 属性，再保存
-            Left = _currentMiniLeft;
-            Top = _currentMiniTop;
+            // 将物理像素转回 DIP，同步到 WPF 属性并保存
+            var dpi = GetDpiScale();
+            Left = _currentMiniPixelX / dpi.scaleX;
+            Top = _currentMiniPixelY / dpi.scaleY;
 
             if (_settings != null)
             {
@@ -375,71 +382,42 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 使用 Win32 SetWindowPos 将窗口移动到指定 DIP 坐标（绕过 WPF 对嵌入子窗口的坐标修正）
+    /// 将位置限制在鼠标所在显示器的完整区域内（物理像素坐标）
     /// </summary>
-    private void MoveWindowTo(double leftDip, double topDip)
+    private void ClampToScreen(ref int pixelX, ref int pixelY)
     {
-        var source = PresentationSource.FromVisual(this);
-        double dpiScaleX = 1.0, dpiScaleY = 1.0;
-        if (source?.CompositionTarget != null)
-        {
-            dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
-            dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
-        }
-
-        int pixelX = (int)(leftDip * dpiScaleX);
-        int pixelY = (int)(topDip * dpiScaleY);
-
-        var hWnd = new WindowInteropHelper(this).Handle;
-        SetWindowPos(hWnd, IntPtr.Zero, pixelX, pixelY, 0, 0,
-            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-    }
-
-    /// <summary>
-    /// 将位置限制在鼠标所在显示器的工作区域内（DIP 坐标）
-    /// </summary>
-    private void ClampToScreen(ref double left, ref double top)
-    {
-        // 用当前鼠标位置判断所在显示器（比窗口中心更稳定）
         GetCursorPos(out var cursorPixel);
 
-        var source = PresentationSource.FromVisual(this);
-        double dpiScaleX = 1.0, dpiScaleY = 1.0;
-        if (source?.CompositionTarget != null)
-        {
-            dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
-            dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
-        }
+        int iconSizePixel = (int)(MiniIconSize * GetDpiScale().scaleX);
 
         var monitor = MonitorFromPoint(cursorPixel, MONITOR_DEFAULTTONEAREST);
-        Rect workArea;
         if (monitor != IntPtr.Zero)
         {
             var info = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
             if (GetMonitorInfo(monitor, ref info))
             {
-                var work = info.rcWork;
-                workArea = new Rect(
-                    work.Left / dpiScaleX,
-                    work.Top / dpiScaleY,
-                    (work.Right - work.Left) / dpiScaleX,
-                    (work.Bottom - work.Top) / dpiScaleY);
-            }
-            else
-            {
-                workArea = SystemParameters.WorkArea;
+                // 使用 rcMonitor（完整显示器区域）而非 rcWork（排除任务栏）
+                var area = info.rcMonitor;
+                if (pixelX < area.Left) pixelX = area.Left;
+                if (pixelY < area.Top) pixelY = area.Top;
+                if (pixelX + iconSizePixel > area.Right) pixelX = area.Right - iconSizePixel;
+                if (pixelY + iconSizePixel > area.Bottom) pixelY = area.Bottom - iconSizePixel;
             }
         }
-        else
-        {
-            workArea = SystemParameters.WorkArea;
-        }
+    }
 
-        // 限制不超出工作区域
-        if (left < workArea.Left) left = workArea.Left;
-        if (top < workArea.Top) top = workArea.Top;
-        if (left + MiniIconSize > workArea.Right) left = workArea.Right - MiniIconSize;
-        if (top + MiniIconSize > workArea.Bottom) top = workArea.Bottom - MiniIconSize;
+    /// <summary>
+    /// 获取当前窗口的 DPI 缩放因子
+    /// </summary>
+    private (double scaleX, double scaleY) GetDpiScale()
+    {
+        var source = PresentationSource.FromVisual(this);
+        if (source?.CompositionTarget != null)
+        {
+            return (source.CompositionTarget.TransformToDevice.M11,
+                    source.CompositionTarget.TransformToDevice.M22);
+        }
+        return (1.0, 1.0);
     }
 
     #endregion
