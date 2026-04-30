@@ -15,6 +15,12 @@ public class SettingsService : ISettingsService
     public double FontSize { get; set; } = 12.0;
     public Color TaskFontColor { get; set; } = Colors.White;
 
+    // 窗口位置和尺寸，使用 NaN 表示"未保存过"
+    public double WindowLeft { get; set; } = double.NaN;
+    public double WindowTop { get; set; } = double.NaN;
+    public double WindowWidth { get; set; } = double.NaN;
+    public double WindowHeight { get; set; } = double.NaN;
+
     public SettingsService()
     {
         var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DesktopTodo");
@@ -67,13 +73,31 @@ public class SettingsService : ISettingsService
                 var color = (Color)ColorConverter.ConvertFromString(tfc.GetString()!);
                 TaskFontColor = color;
             }
+            if (root.TryGetProperty("WindowLeft", out var wl))
+                WindowLeft = wl.GetDouble();
+            if (root.TryGetProperty("WindowTop", out var wt))
+                WindowTop = wt.GetDouble();
+            if (root.TryGetProperty("WindowWidth", out var ww))
+                WindowWidth = ww.GetDouble();
+            if (root.TryGetProperty("WindowHeight", out var wh))
+                WindowHeight = wh.GetDouble();
         }
         catch { }
     }
 
     public void Save()
     {
-        var obj = new { BackgroundOpacity, BackgroundColor = BackgroundColor.ToString(), FontSize, TaskFontColor = TaskFontColor.ToString() };
+        var obj = new
+        {
+            BackgroundOpacity,
+            BackgroundColor = BackgroundColor.ToString(),
+            FontSize,
+            TaskFontColor = TaskFontColor.ToString(),
+            WindowLeft,
+            WindowTop,
+            WindowWidth,
+            WindowHeight
+        };
         var json = JsonSerializer.Serialize(obj, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(_settingsPath, json);
     }

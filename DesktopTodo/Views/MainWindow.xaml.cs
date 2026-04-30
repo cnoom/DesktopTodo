@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using DesktopTodo.Helpers;
+using DesktopTodo.Services;
 using DesktopTodo.ViewModels;
 
 namespace DesktopTodo.Views;
@@ -11,6 +13,7 @@ namespace DesktopTodo.Views;
 public partial class MainWindow : Window
 {
     private MainViewModel VM => (MainViewModel)DataContext;
+    private ISettingsService _settings = null!;
 
     public MainWindow()
     {
@@ -19,6 +22,112 @@ public partial class MainWindow : Window
         WindowResizeHelper.Enable(this);
         DesktopEmbedHelper.EmbedWindow(this);
     }
+
+    /// <summary>
+    /// 由 App.xaml.cs 在 DataContext 注入后调用，用于恢复窗口位置和尺寸
+    /// </summary>
+    public void RestoreWindowPosition(ISettingsService settings)
+    {
+        _settings = settings;
+
+        if (!double.IsNaN(settings.WindowWidth) && !double.IsNaN(settings.WindowHeight))
+        {
+            Width = Math.Max(settings.WindowWidth, MinWidth);
+            Height = Math.Max(settings.WindowHeight, MinHeight);
+        }
+
+        if (!double.IsNaN(settings.WindowLeft) && !double.IsNaN(settings.WindowTop))
+        {
+            // 检查保存的位置是否在任意显示器可见区域内
+            if (IsPositionOnScreen(settings.WindowLeft, settings.WindowTop, Width, Height))
+            {
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Left = settings.WindowLeft;
+                Top = settings.WindowTop;
+            }
+            // 不可见时保持 WindowStartupLocation="CenterScreen"
+        }
+    }
+
+    /// <summary>
+    /// 检查指定矩形是否与任意显示器的工作区域有交集
+    /// </summary>
+    private static bool IsPositionOnScreen(double x, double y, double w, double h)
+    {
+        var rect = new RECT { Left = (int)x, Top = (int)y, Right = (int)(x + w), Bottom = (int)(y + h) };
+
+        // 遍历所有显示器
+        return MonitorEnumProc callback = null!;
+        callback = (hMonitor, _, _, _) =>
+        {
+            var monitorInfo = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
+            if (GetMonitorInfo(hMonitor, ref monitorInfo))
+            {
+                var work = monitorInfo.rcWork;
+                // 检查交集：矩形是否与该显示器工作区域重叠
+                if (rect.Left < work.Right && rect.Right > work.Left &&
+                    rect.Top < work.Bottom && rect.Bottom > work.Top)
+                {
+                    return false; // 找到交集，停止枚举
+                }
+            }
+            return true; // 继续枚举
+        };
+
+        bool found = false;
+        MonitorEnumProc wrapper = (hMonitor, hdcMonitor, lprcMonitor, dwData) =>
+        {
+            bool continueEnum = callback(hMonitor, hdcMonitor, lprcMonitor, dwData);
+            if (!continueEnum) found = true;
+            return continueEnum;
+        };
+
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, wrapper, IntPtr.Zero);
+        return found;
+    }
+
+    /// <summary>
+    /// 保存窗口位置和尺寸到设置
+    /// </summary>
+    private void SaveWindowPosition()
+    {
+        if (_settings == null) return;
+
+        // 最小化时不保存位置（保留上一次的有效值）
+        if (WindowState == WindowState.Minimized) return;
+
+        _settings.WindowLeft = Left;
+        _settings.WindowTop = Top;
+        _settings.WindowWidth = Width;
+        _settings.WindowHeight = Height;
+    }
+
+    #region Win32 显示器枚举
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left, Top, Right, Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, IntPtr lprcMonitor, IntPtr dwData);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    #endregion
 
     /// <summary>
     /// 设置 TextBox 占位文字的显示/隐藏逻辑
@@ -511,6 +620,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
+        SaveWindowPosition();
         VM.SaveSettingsCommand.Execute(null);
         base.OnClosing(e);
     }

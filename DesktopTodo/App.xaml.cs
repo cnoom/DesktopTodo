@@ -54,6 +54,7 @@ public partial class App : Application
         _serviceProvider = services.BuildServiceProvider();
 
         MainWindow mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+        mainWindow.RestoreWindowPosition(_serviceProvider.GetRequiredService<ISettingsService>());
         mainWindow.Show();
     }
 
