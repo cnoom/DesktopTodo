@@ -122,27 +122,19 @@
                             </ItemsControl>
                         </ScrollViewer>
 
-                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,0">
-                            <Grid>
-                                <TextBox x:Name="NewCategoryTextBox"
-                                         Width="160" Height="24"
-                                         VerticalAlignment="Center"
-                                         KeyDown="NewCategoryTextBox_KeyDown"/>
-                                <TextBlock x:Name="NewCategoryPlaceholder"
-                                           Text="输入分类名..."
-                                           IsHitTestVisible="False"
-                                           VerticalAlignment="Center"
-                                           Margin="4,0,0,0"
-                                           Foreground="{Binding DataContext.AdaptiveMutedForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                                           FontSize="{StaticResource FontSizeNormal}"/>
-                            </Grid>
-                            <Button Content="添加" Width="40" Height="24"
-                                    Click="AddCategoryButton_Click"
-                                    Margin="4,0,0,0"
-                                    Style="{StaticResource RoundedButtonStyle}"
-                                    FontSize="{StaticResource FontSizeSmall}"
-                                    ToolTip="添加分类"/>
-                        </StackPanel>
+                        <Grid Grid.Row="2" Margin="0,6,0,0">
+                            <TextBox x:Name="NewCategoryTextBox"
+                                     Height="24"
+                                     VerticalAlignment="Center"
+                                     KeyDown="NewCategoryTextBox_KeyDown"/>
+                            <TextBlock x:Name="NewCategoryPlaceholder"
+                                       Text="输入分类名，回车添加..."
+                                       IsHitTestVisible="False"
+                                       VerticalAlignment="Center"
+                                       Margin="4,0,0,0"
+                                       Foreground="{Binding DataContext.AdaptiveMutedForeground, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       FontSize="{StaticResource FontSizeNormal}"/>
+                        </Grid>
                     </Grid>
                 </Border>
 
@@ -460,25 +452,18 @@
                                     </Grid.RowDefinitions>
                                     <TextBlock Text="新建任务" FontWeight="SemiBold"
                                                Margin="0,0,0,4"/>
-                                    <StackPanel Grid.Row="1" Orientation="Horizontal">
-                                        <Grid>
-                                            <TextBox x:Name="NewTaskTextBox"
-                                                     Text="{Binding NewTaskTitle, UpdateSourceTrigger=PropertyChanged}"
-                                                     Width="260" KeyDown="NewTaskTextBox_KeyDown"
-                                                     VerticalAlignment="Center"/>
-                                            <TextBlock x:Name="NewTaskPlaceholder"
-                                                       Text="输入任务标题..."
-                                                       IsHitTestVisible="False"
-                                                       VerticalAlignment="Center"
-                                                       Margin="4,0,0,0"
-                                                       Foreground="{Binding DataContext.AdaptiveMutedForeground, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                        </Grid>
-                                        <Button Content="添加" Width="50" Height="26"
-                                                Click="AddTopLevelButton_Click"
-                                                Margin="8,0,0,0"
-                                                Style="{StaticResource RoundedButtonStyle}"
-                                                ToolTip="添加任务（回车 / Ctrl+N）"/>
-                                    </StackPanel>
+                                    <Grid Grid.Row="1">
+                                        <TextBox x:Name="NewTaskTextBox"
+                                                 Text="{Binding NewTaskTitle, UpdateSourceTrigger=PropertyChanged}"
+                                                 KeyDown="NewTaskTextBox_KeyDown"
+                                                 VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="NewTaskPlaceholder"
+                                                   Text="输入任务标题，回车添加..."
+                                                   IsHitTestVisible="False"
+                                                   VerticalAlignment="Center"
+                                                   Margin="4,0,0,0"
+                                                   Foreground="{Binding DataContext.AdaptiveMutedForeground, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                    </Grid>
                                 </Grid>
                             </Border>
 
@@ -493,25 +478,18 @@
                                     </Grid.RowDefinitions>
                                     <TextBlock Text="添加标签" FontWeight="SemiBold"
                                                Margin="0,0,0,4"/>
-                                    <StackPanel Grid.Row="1" Orientation="Horizontal">
-                                        <Grid>
-                                            <TextBox x:Name="NewTagTextBox"
-                                                     Width="200" Height="24"
-                                                     VerticalAlignment="Center"
-                                                     KeyDown="NewTagTextBox_KeyDown"/>
-                                            <TextBlock x:Name="NewTagPlaceholder"
-                                                       Text="选中任务后输入标签名..."
-                                                       IsHitTestVisible="False"
-                                                       VerticalAlignment="Center"
-                                                       Margin="4,0,0,0"
-                                                       Foreground="{Binding DataContext.AdaptiveMutedForeground, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                        </Grid>
-                                        <Button Content="添加" Width="50" Height="26"
-                                                Click="AddTagButton_Click"
-                                                Margin="8,0,0,0"
-                                                Style="{StaticResource RoundedButtonStyle}"
-                                                ToolTip="为选中任务添加标签（回车）"/>
-                                    </StackPanel>
+                                    <Grid Grid.Row="1">
+                                        <TextBox x:Name="NewTagTextBox"
+                                                 Height="24"
+                                                 VerticalAlignment="Center"
+                                                 KeyDown="NewTagTextBox_KeyDown"/>
+                                        <TextBlock x:Name="NewTagPlaceholder"
+                                                   Text="选中任务后输入标签名，回车添加..."
+                                                   IsHitTestVisible="False"
+                                                   VerticalAlignment="Center"
+                                                   Margin="4,0,0,0"
+                                                   Foreground="{Binding DataContext.AdaptiveMutedForeground, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                    </Grid>
                                 </Grid>
                             </Border>
                         </StackPanel>
