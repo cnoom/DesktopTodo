@@ -60,7 +60,9 @@ var
   InstalledVersion: String;
 begin
   Result := True;
-  if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#SetupSetting("AppId")}_is1',
+  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#SetupSetting("AppId")}_is1',
+    'DisplayVersion', InstalledVersion) or
+     RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#SetupSetting("AppId")}_is1',
     'DisplayVersion', InstalledVersion) then
   begin
     if InstalledVersion <> '{#MyAppVersion}' then
