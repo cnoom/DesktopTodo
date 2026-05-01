@@ -80,7 +80,7 @@ public static class TreeViewDragBehavior
                 Math.Abs(pos.Y - _dragStartPoint.Y) > SystemParameters.MinimumVerticalDragDistance)
             {
                 var element = e.OriginalSource as UIElement;
-                var item = FindAncestorOfType<TreeViewItem>(element);
+                var item = VisualTreeHelpers.FindAncestorOfType<TreeViewItem>(element);
                 if (item?.DataContext is TaskItemViewModel vm)
                 {
                     _draggedItem = vm;
@@ -115,8 +115,8 @@ public static class TreeViewDragBehavior
             ClearLastHighlight();
 
             var targetElement = e.OriginalSource as UIElement;
-            var targetItem = FindAncestorOfType<TreeViewItem>(targetElement);
-            var categoryBorder = FindAncestorOfCategoryBorder(targetElement);
+            var targetItem = VisualTreeHelpers.FindAncestorOfType<TreeViewItem>(targetElement);
+            var categoryBorder = VisualTreeHelpers.FindAncestorOfCategoryBorder(targetElement);
 
             if (categoryBorder != null)
             {
@@ -285,27 +285,6 @@ public static class TreeViewDragBehavior
                 _lastHighlightedItem.BorderThickness = new Thickness(0);
                 _lastHighlightedItem = null;
             }
-        }
-
-        private static Border? FindAncestorOfCategoryBorder(DependencyObject? current)
-        {
-            while (current != null)
-            {
-                if (current is Border border && border.DataContext is Category)
-                    return border;
-                current = VisualTreeHelper.GetParent(current);
-            }
-            return null;
-        }
-
-        private static T? FindAncestorOfType<T>(DependencyObject? current) where T : DependencyObject
-        {
-            while (current != null)
-            {
-                if (current is T t) return t;
-                current = VisualTreeHelper.GetParent(current);
-            }
-            return null;
         }
 
         private bool IsDescendant(TaskItemViewModel parent, TaskItemViewModel potentialDescendant)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -16,7 +17,10 @@ public class StringToBrushConverter : IValueConverter
                 var color = (Color)ColorConverter.ConvertFromString(colorStr);
                 return new SolidColorBrush(color);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[StringToBrushConverter] 解析颜色失败 '{colorStr}': {ex.Message}");
+            }
         }
         return Brushes.Transparent;
     }

@@ -15,6 +15,7 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly IDatabaseService _db;
     private readonly ISettingsService _settings;
+    private readonly IDialogService _dialog;
 
     [ObservableProperty]
     private ObservableCollection<TaskItemViewModel> _rootTasks = new();
@@ -95,10 +96,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private byte _taskFontBlue;
 
-    public MainViewModel(IDatabaseService db, ISettingsService settings)
+    public MainViewModel(IDatabaseService db, ISettingsService settings, IDialogService dialog)
     {
         _db = db;
         _settings = settings;
+        _dialog = dialog;
 
         // 加载设置
         BackgroundOpacity = _settings.BackgroundOpacity;
@@ -225,7 +227,7 @@ public partial class MainViewModel : ObservableObject
     public void LoadTasks() => BuildTreeFromList(_db.GetAllTasks());
 
     private void LoadTasksByCategory(int? categoryId) =>
-        BuildTreeFromList(_db.GetAllTasks().Where(t => t.CategoryId == categoryId).ToList());
+        BuildTreeFromList(_db.GetTasksByCategory(categoryId));
 
     private void BuildTreeFromList(List<TodoTask> tasks)
     {
@@ -243,16 +245,16 @@ public partial class MainViewModel : ObservableObject
         // 更新空状态
         IsEmptyState = RootTasks.Count == 0;
 
-        // 更新分类任务计数
-        UpdateCategoryTaskCounts();
+        // 更新分类任务计数（复用已加载的数据）
+        UpdateCategoryTaskCounts(tasks);
     }
 
     /// <summary>
-    /// 更新各分类的任务数量显示
+    /// 更新各分类的任务数量显示（复用已加载的任务数据，避免重复查询）
     /// </summary>
-    private void UpdateCategoryTaskCounts()
+    private void UpdateCategoryTaskCounts(List<TodoTask>? preloadedTasks = null)
     {
-        var allTasks = _db.GetAllTasks();
+        var allTasks = preloadedTasks ?? _db.GetAllTasks();
         var totalCount = allTasks.Count;
 
         foreach (var cat in Categories)

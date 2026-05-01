@@ -56,10 +56,10 @@ public static class DesktopEmbedHelper
             IntPtr shellDefView = IntPtr.Zero;
             do
             {
-                workerW = FindWindowEx(IntPtr.Zero, workerW, WorkerWClass, null);
+                workerW = FindWindowEx(IntPtr.Zero, workerW, WorkerWClass, null!);
                 if (workerW != IntPtr.Zero)
                 {
-                    shellDefView = FindWindowEx(workerW, IntPtr.Zero, "SHELLDLL_DefView", null);
+                    shellDefView = FindWindowEx(workerW, IntPtr.Zero, "SHELLDLL_DefView", null!);
                     if (shellDefView != IntPtr.Zero)
                         break;
                 }

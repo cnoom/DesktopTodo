@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using System.Windows;
 using CommunityToolkit.Mvvm.Input;
 using DesktopTodo.Models;
 
@@ -43,8 +42,7 @@ public partial class MainViewModel
     private void DeleteCategory(Category cat)
     {
         if (cat == null || cat.Id <= 0) return;
-        if (MessageBox.Show($"确定删除分类“{cat.Name}”吗？相关任务将变为未分类。", "删除分类",
-                MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        if (_dialog.Confirm($"确定删除分类\"{cat.Name}\"吗？相关任务将变为未分类。", "删除分类"))
         {
             _db.DeleteCategory(cat.Id);
             Categories.Remove(cat);

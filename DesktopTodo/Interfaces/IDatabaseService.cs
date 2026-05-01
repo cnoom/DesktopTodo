@@ -7,6 +7,8 @@ public interface IDatabaseService
 {
     // Tasks
     List<TodoTask> GetAllTasks();
+    List<TodoTask> GetTasksByCategory(int? categoryId);
+    List<TodoTask> GetTasksByTagIds(HashSet<int> taskIds);
     int AddTask(TodoTask task);
     void UpdateTask(TodoTask task);
     void DeleteTask(int id);

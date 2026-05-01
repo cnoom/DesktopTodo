@@ -44,7 +44,7 @@ public partial class MainViewModel
     {
         if (item == null) return;
         var msg = $"确定删除「{item.Task.Title}」及其所有子任务？";
-        if (MessageBox.Show(msg, "确认", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+        if (_dialog.Confirm(msg, "确认"))
         {
             _db.DeleteTask(item.Task.Id);
             RemoveFromTree(item);

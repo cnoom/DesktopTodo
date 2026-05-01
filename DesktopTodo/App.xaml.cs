@@ -16,7 +16,6 @@ public partial class App : Application
     private Mutex? _mutex;
     private bool _ownsMutex;
     private ServiceProvider _serviceProvider = null!;
-
     protected override void OnStartup(StartupEventArgs e)
     {
         // 单实例检测
@@ -39,6 +38,7 @@ public partial class App : Application
         // 注册服务
         services.AddSingleton<IDatabaseService, DatabaseService>();
         services.AddSingleton<ISettingsService, SettingsService>();
+        services.AddSingleton<IDialogService, DialogService>();
 
         // 注册 ViewModel
         services.AddSingleton<MainViewModel>();

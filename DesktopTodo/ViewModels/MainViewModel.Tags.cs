@@ -80,5 +80,5 @@ public partial class MainViewModel
     private void FilterTasksByTag(int tagId) => FilterTasksByIds(_db.GetTaskIdsWithTag(tagId).ToHashSet());
 
     private void FilterTasksByIds(HashSet<int> allowedIds) =>
-        BuildTreeFromList(_db.GetAllTasks().Where(t => allowedIds.Contains(t.Id)).ToList());
+        BuildTreeFromList(_db.GetTasksByTagIds(allowedIds));
 }

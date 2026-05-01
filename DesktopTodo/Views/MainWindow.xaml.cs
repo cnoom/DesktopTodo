@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -31,7 +32,7 @@ public partial class MainWindow : Window
     private int _currentMiniPixelX;       // 拖拽过程中窗口当前物理像素 X
     private int _currentMiniPixelY;       // 拖拽过程中窗口当前物理像素 Y
     
-    int snapThreshold = 20; // 像素，可调
+    private const int SnapThreshold = 20; // 像素，可调
 
     public MainWindow()
     {
@@ -582,7 +583,7 @@ public partial class MainWindow : Window
 
         // 从 TextBlock 向上遍历视觉树找到外层行 Grid（Margin="2,3" 的那个）
         // 外层 Grid 包含：内层内容 Grid + 操作按钮浮动层 StackPanel
-        Panel outerGrid = null;
+        Panel? outerGrid = null;
         DependencyObject current = VisualTreeHelper.GetParent(textBlock);
         while (current != null)
         {
@@ -636,7 +637,7 @@ public partial class MainWindow : Window
         {
             try
             {
-                var brush = (SolidColorBrush)new BrushConverter().ConvertFrom(vm.Task.Color);
+                var brush = (SolidColorBrush?)new BrushConverter().ConvertFrom(vm.Task.Color);
                 if (brush != null)
                 {
                     initR = brush.Color.R;
@@ -644,7 +645,10 @@ public partial class MainWindow : Window
                     initB = brush.Color.B;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MainWindow] 解析任务颜色失败: {ex.Message}");
+            }
         }
 
         // 更新颜色预览条
@@ -858,12 +862,7 @@ public partial class MainWindow : Window
 
     private TaskItemViewModel? FindTaskItemViewModelFromElement(DependencyObject element)
     {
-        while (element != null)
-        {
-            if (element is FrameworkElement fe && fe.DataContext is TaskItemViewModel vm) return vm;
-            element = VisualTreeHelper.GetParent(element);
-        }
-        return null;
+        return VisualTreeHelpers.FindTaskItemViewModel(element);
     }
 
     private void SaveSettingsClick(object sender, RoutedEventArgs e) => VM.SaveSettingsCommand.Execute(null);
@@ -926,7 +925,7 @@ public partial class MainWindow : Window
     {
         if (e.Data.GetData(typeof(TaskItemViewModel)) is TaskItemViewModel draggedItem)
         {
-            var categoryBorder = FindAncestorOfCategoryBorder(e.OriginalSource as DependencyObject);
+            var categoryBorder = VisualTreeHelpers.FindAncestorOfCategoryBorder(e.OriginalSource as DependencyObject);
             if (categoryBorder?.DataContext is Models.Category cat)
             {
                 int? catId = cat.Id > 0 ? cat.Id : null;
@@ -937,15 +936,8 @@ public partial class MainWindow : Window
     }
 
     private static Border? FindAncestorOfCategoryBorder(DependencyObject? current)
-    {
-        while (current != null)
-        {
-            if (current is Border border && border.DataContext is Models.Category)
-                return border;
-            current = VisualTreeHelper.GetParent(current);
-        }
-        return null;
-    }
+        => VisualTreeHelpers.FindAncestorOfCategoryBorder(current);
+
 
     // 分类事件
     private void CategoryItem_Click(object sender, MouseButtonEventArgs e)
@@ -977,26 +969,8 @@ public partial class MainWindow : Window
 
     // 辅助方法
     private static T? FindNamedChild<T>(DependencyObject parent, string name) where T : FrameworkElement
-    {
-        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, i);
-            if (child is T t && t.Name == name) return t;
-            var result = FindNamedChild<T>(child, name);
-            if (result != null) return result;
-        }
-        return null;
-    }
+        => VisualTreeHelpers.FindNamedChild<T>(parent, name);
 
     private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
-    {
-        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, i);
-            if (child is T t) return t;
-            var result = FindVisualChild<T>(child);
-            if (result != null) return result;
-        }
-        return null;
-    }
+        => VisualTreeHelpers.FindVisualChild<T>(parent);
 }

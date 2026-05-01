@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Media;
@@ -48,9 +49,9 @@ public class SettingsService : ISettingsService
             {
                 File.Copy(legacyPath, _settingsPath, overwrite: false);
             }
-            catch
+            catch (Exception ex)
             {
-                // 迁移失败不影响启动
+                Debug.WriteLine($"[SettingsService] 设置文件迁移失败: {ex.Message}");
             }
         }
     }
@@ -90,7 +91,10 @@ public class SettingsService : ISettingsService
             if (root.TryGetProperty("MiniModeTop", out var mmt) && mmt.ValueKind != JsonValueKind.Null)
                 MiniModeTop = mmt.GetDouble();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[SettingsService] 加载设置失败: {ex.Message}");
+        }
     }
 
     public void Save()
