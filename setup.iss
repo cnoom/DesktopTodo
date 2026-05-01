@@ -1,7 +1,7 @@
 ; DesktopTodo 安装脚本 - Inno Setup 6
 
 #define MyAppName "DesktopTodo"
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "1.3.1"
 #define MyAppPublisher "DesktopTodo"
 #define MyAppExeName "DesktopTodo.exe"
 #define MyAppCopyright "Copyright (C) 2025"
@@ -70,21 +70,31 @@ end;
 function InitializeSetup(): Boolean;
 var
   InstalledVersion: String;
+  Key: String;
 begin
   Result := True;
-  if GetInstalledVersion(InstalledVersion) then
+
+  Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{#SetupSetting("AppId")}';
+
+  if RegQueryStringValue(HKCU, Key, 'DisplayVersion', InstalledVersion) or
+     RegQueryStringValue(HKLM64, Key, 'DisplayVersion', InstalledVersion) or
+     RegQueryStringValue(HKLM, Key, 'DisplayVersion', InstalledVersion) then
   begin
     if InstalledVersion <> '{#MyAppVersion}' then
     begin
-      if MsgBox('检测到已安装版本：' + InstalledVersion + #13#10 +
+      if MsgBox(
+        '检测到已安装版本：' + InstalledVersion + #13#10 +
         '即将安装版本：{#MyAppVersion}' + #13#10 + #13#10 +
-        '是否继续安装？', mbConfirmation, MB_YESNO) = IDNO then
+        '是否继续安装？',
+        mbConfirmation, MB_YESNO) = IDNO then
         Result := False;
     end;
   end;
 end;
 
 [Registry]
+; 写入版本号到卸载注册表，供安装时版本对比
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Uninstall\{#SetupSetting("AppId")}"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "{#MyAppVersion}"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsdeletevalue; Tasks: startupicon
 
 [UninstallDelete]
