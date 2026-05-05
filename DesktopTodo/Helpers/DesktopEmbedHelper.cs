@@ -26,7 +26,7 @@ public static class DesktopEmbedHelper
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
 
-    private static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
+    private static readonly IntPtr HWND_BOTTOM = new(1);
     private const uint SWP_NOSIZE = 0x0001;
     private const uint SWP_NOMOVE = 0x0002;
     private const uint SWP_NOACTIVATE = 0x0010;
@@ -48,6 +48,13 @@ public static class DesktopEmbedHelper
     public static void EmbedWindow(Window window)
     {
         if (window == null) throw new ArgumentNullException(nameof(window));
+
+        // 在窗口句柄创建后、首次显示前就设置 WS_EX_TOOLWINDOW
+        window.SourceInitialized += (s, e) =>
+        {
+            var helper = new WindowInteropHelper(window);
+            SetToolWindowStyle(helper.Handle);
+        };
 
         window.Loaded += (s, e) =>
         {
@@ -85,9 +92,8 @@ public static class DesktopEmbedHelper
             SetParent(hWnd, workerW);
             SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
 
-            // 从 Alt+Tab 列表中隐藏：添加 WS_EX_TOOLWINDOW 并移除 WS_EX_APPWINDOW
-            int exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
-            SetWindowLong(hWnd, GWL_EXSTYLE, (exStyle | (int)WS_EX_TOOLWINDOW) & ~(int)WS_EX_APPWINDOW);
+            // 嵌入桌面后再次确保样式正确（SetParent 可能重置扩展样式）
+            SetToolWindowStyle(hWnd);
 
             HwndSource source = HwndSource.FromHwnd(hWnd);
             if (source != null)
@@ -95,6 +101,15 @@ public static class DesktopEmbedHelper
                 source.AddHook(WndProcHook);
             }
         };
+    }
+
+    /// <summary>
+    /// 设置 WS_EX_TOOLWINDOW 并移除 WS_EX_APPWINDOW，使窗口不出现在 Alt+Tab 中
+    /// </summary>
+    private static void SetToolWindowStyle(IntPtr hWnd)
+    {
+        int exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+        SetWindowLong(hWnd, GWL_EXSTYLE, (exStyle | (int)WS_EX_TOOLWINDOW) & ~(int)WS_EX_APPWINDOW);
     }
 
     private static IntPtr WndProcHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
