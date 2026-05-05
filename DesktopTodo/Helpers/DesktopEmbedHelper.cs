@@ -34,6 +34,17 @@ public static class DesktopEmbedHelper
     private const int MA_ACTIVATE = 1;
     private const int WM_SETFOCUS = 0x0007;
 
+    // 用于从 Alt+Tab 列表中隐藏窗口
+    private const int GWL_EXSTYLE = -20;
+    private const uint WS_EX_TOOLWINDOW = 0x00000080;
+    private const uint WS_EX_APPWINDOW = 0x00040000;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
     public static void EmbedWindow(Window window)
     {
         if (window == null) throw new ArgumentNullException(nameof(window));
@@ -73,6 +84,10 @@ public static class DesktopEmbedHelper
 
             SetParent(hWnd, workerW);
             SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+
+            // 从 Alt+Tab 列表中隐藏：添加 WS_EX_TOOLWINDOW 并移除 WS_EX_APPWINDOW
+            int exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+            SetWindowLong(hWnd, GWL_EXSTYLE, (exStyle | (int)WS_EX_TOOLWINDOW) & ~(int)WS_EX_APPWINDOW);
 
             HwndSource source = HwndSource.FromHwnd(hWnd);
             if (source != null)
