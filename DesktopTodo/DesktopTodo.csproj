@@ -9,6 +9,7 @@
         <Version>1.4</Version>
         <AssemblyVersion>1.4</AssemblyVersion>
         <FileVersion>1.4</FileVersion>
+        <ApplicationIcon>Assets\app.ico</ApplicationIcon>
 
         <!-- 自包含部署：打包 .NET 运行时，用户无需单独安装 -->
         <PublishSingleFile>true</PublishSingleFile>
@@ -27,6 +28,9 @@
         <None Update="appsettings.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <Content Include="Assets\app.ico">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>

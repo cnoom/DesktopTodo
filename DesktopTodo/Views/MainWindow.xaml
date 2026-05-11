@@ -530,10 +530,10 @@
             <Border.RenderTransform>
                 <ScaleTransform x:Name="MiniIconScale" ScaleX="1" ScaleY="1" />
             </Border.RenderTransform>
-            <TextBlock Text="✔" FontSize="22"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Foreground="{Binding DataContext.AdaptiveForeground, RelativeSource={RelativeSource AncestorType=Window}}"
-                       Opacity="0.7" />
+            <Image Source="/Assets/app.ico"
+                   Width="28" Height="28"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality" />
         </Border>
 
         <!-- 外观设置弹窗 -->

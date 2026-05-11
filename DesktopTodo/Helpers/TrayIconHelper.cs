@@ -1,5 +1,7 @@
 using System;
 using System.Drawing;
+using System.IO;
+using System.Reflection;
 using System.Windows.Forms;
 using Application = System.Windows.Application;
 
@@ -28,7 +30,7 @@ public class TrayIconHelper : IDisposable
     {
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = LoadAppIcon(),
             Text = "DesktopTodo",
             Visible = true
         };
@@ -84,6 +86,25 @@ public class TrayIconHelper : IDisposable
     {
         IsHidden = hidden;
         UpdateToggleText();
+    }
+
+    /// <summary>
+    /// 加载应用程序图标
+    /// </summary>
+    private static Icon LoadAppIcon()
+    {
+        try
+        {
+            var exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var icoPath = Path.Join(exeDir, "Assets", "app.ico");
+            if (File.Exists(icoPath))
+                return new Icon(icoPath);
+        }
+        catch
+        {
+            // 加载失败时使用默认图标
+        }
+        return SystemIcons.Application;
     }
 
     public void Dispose()
