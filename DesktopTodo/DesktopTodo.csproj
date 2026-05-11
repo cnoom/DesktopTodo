@@ -28,6 +28,7 @@
         <None Update="appsettings.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <Resource Include="Assets\app.ico" />
     </ItemGroup>
 
     <ItemGroup>
