@@ -1,7 +1,6 @@
 using System;
 using System.Drawing;
 using System.IO;
-using System.Reflection;
 using System.Windows.Forms;
 using Application = System.Windows.Application;
 
@@ -89,20 +88,19 @@ public class TrayIconHelper : IDisposable
     }
 
     /// <summary>
-    /// 加载应用程序图标
+    /// 从可执行文件中提取应用程序图标
     /// </summary>
     private static Icon LoadAppIcon()
     {
         try
         {
-            var exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            var icoPath = Path.Join(exeDir, "Assets", "app.ico");
-            if (File.Exists(icoPath))
-                return new Icon(icoPath);
+            var exePath = Environment.ProcessPath;
+            if (!string.IsNullOrEmpty(exePath))
+                return Icon.ExtractAssociatedIcon(exePath)!;
         }
         catch
         {
-            // 加载失败时使用默认图标
+            // 提取失败时使用默认图标
         }
         return SystemIcons.Application;
     }
