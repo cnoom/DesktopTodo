@@ -15,7 +15,7 @@ namespace DesktopTodo.Views;
 
 public partial class MainWindow : Window
 {
-    private MainViewModel VM => (MainViewModel)DataContext;
+    internal MainViewModel VM => (MainViewModel)DataContext;
     private ISettingsService _settings = null!;
 
     // 迷你模式状态
@@ -100,7 +100,7 @@ public partial class MainWindow : Window
     /// <summary>
     /// 保存窗口位置和尺寸到设置
     /// </summary>
-    private void SaveWindowPosition()
+    public void SaveWindowPosition()
     {
         if (_settings == null) return;
 
@@ -118,6 +118,29 @@ public partial class MainWindow : Window
         _settings.WindowTop = Top;
         _settings.WindowWidth = Width;
         _settings.WindowHeight = Height;
+    }
+
+    /// <summary>
+    /// 重置窗口位置到屏幕中央
+    /// </summary>
+    public void ResetToScreenCenter()
+    {
+        // 如果处于迷你模式，先退出迷你模式
+        if (_isMiniMode)
+        {
+            ExitMiniMode();
+        }
+
+        WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        Left = (SystemParameters.PrimaryScreenWidth - Width) / 2;
+        Top = (SystemParameters.PrimaryScreenHeight - Height) / 2;
+
+        // 清除保存的位置信息，下次启动将居中
+        if (_settings != null)
+        {
+            _settings.WindowLeft = double.NaN;
+            _settings.WindowTop = double.NaN;
+        }
     }
 
     #region Win32 显示器枚举
@@ -898,13 +921,6 @@ public partial class MainWindow : Window
             _settings.MiniModeTop = double.NaN;
         }
         VM.SaveSettingsCommand.Execute(null);
-    }
-
-    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
-    {
-        SaveWindowPosition();
-        VM.SaveSettingsCommand.Execute(null);
-        base.OnClosing(e);
     }
 
     // 分类拖放事件
