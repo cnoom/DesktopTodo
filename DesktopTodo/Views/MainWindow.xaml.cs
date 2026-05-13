@@ -369,7 +369,8 @@ public partial class MainWindow : Window
     {
         if (_dragOverCategoryBorder != null)
         {
-            _dragOverCategoryBorder.Background = Brushes.Transparent;
+            // 清除本地值，让 Style/Trigger 重新接管背景色
+            _dragOverCategoryBorder.ClearValue(Border.BackgroundProperty);
             _dragOverCategoryBorder = null;
         }
     }
