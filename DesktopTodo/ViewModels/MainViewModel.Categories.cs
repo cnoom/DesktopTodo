@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using DesktopTodo.Models;
@@ -51,5 +52,13 @@ public partial class MainViewModel
             SelectedCategory.IsSelected = true;
             RefreshCurrentView();
         }
+    }
+
+    /// <summary>
+    /// 持久化分类排序顺序
+    /// </summary>
+    public async void ReorderCategories(List<int> categoryIds)
+    {
+        await _db.ReorderCategoriesAsync(categoryIds);
     }
 }

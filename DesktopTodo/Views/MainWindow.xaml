@@ -74,7 +74,8 @@
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled">
-                            <ItemsControl ItemsSource="{Binding Categories}">
+                            <ItemsControl ItemsSource="{Binding Categories}"
+                                          helpers:CategoryDragBehavior.IsEnabled="True">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border x:Name="CategoryItem"

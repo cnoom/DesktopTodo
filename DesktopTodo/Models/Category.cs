@@ -21,5 +21,15 @@ public partial class Category : ObservableObject
 
     public int Id { get; set; }
 
+    /// <summary>
+    /// 排序顺序，用于拖拽排序后持久化
+    /// </summary>
+    public int SortOrder { get; set; }
+
+    /// <summary>
+    /// 是否为固定分类（全部/未分类），不参与拖拽排序
+    /// </summary>
+    public bool IsFixed => Id <= 0;
+
     public override string ToString() => Name;
 }

@@ -31,4 +31,5 @@ public interface IDatabaseService
     Task<List<Category>> GetAllCategoriesAsync();
     Task<int> AddCategoryAsync(string name);
     Task DeleteCategoryAsync(int categoryId);
+    Task ReorderCategoriesAsync(List<int> categoryIds);
 }

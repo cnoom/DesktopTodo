@@ -84,6 +84,15 @@ public class DatabaseService : IDatabaseService
         ";
         cmd.ExecuteNonQuery();
 
+        // 兼容旧数据库：添加 SortOrder 列
+        cmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Categories') WHERE name = 'SortOrder'";
+        var catSortExists = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+        if (!catSortExists)
+        {
+            cmd.CommandText = "ALTER TABLE Categories ADD COLUMN SortOrder INTEGER NOT NULL DEFAULT 0";
+            cmd.ExecuteNonQuery();
+        }
+
         // 兼容旧数据库：添加 CategoryId 列
         cmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Tasks') WHERE name = 'CategoryId'";
         var columnExists = Convert.ToInt32(cmd.ExecuteScalar()) > 0;
@@ -414,12 +423,17 @@ public class DatabaseService : IDatabaseService
         using var conn = new SqliteConnection(_connectionString);
         await conn.OpenAsync();
         var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT * FROM Categories ORDER BY Name";
+        cmd.CommandText = "SELECT Id, Name, SortOrder FROM Categories ORDER BY SortOrder, Id";
         var list = new List<Category>();
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            list.Add(new Category { Id = reader.GetInt32(0), Name = reader.GetString(1) });
+            list.Add(new Category
+            {
+                Id = reader.GetInt32(0),
+                Name = reader.GetString(1),
+                SortOrder = reader.IsDBNull(2) ? 0 : reader.GetInt32(2)
+            });
         }
         return list;
     }
@@ -466,6 +480,34 @@ public class DatabaseService : IDatabaseService
             cmd.Parameters.AddWithValue("@id", categoryId);
             await cmd.ExecuteNonQueryAsync();
 
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 批量更新分类排序顺序
+    /// </summary>
+    public async Task ReorderCategoriesAsync(List<int> categoryIds)
+    {
+        using var conn = new SqliteConnection(_connectionString);
+        await conn.OpenAsync();
+        using var transaction = (SqliteTransaction)await conn.BeginTransactionAsync();
+        try
+        {
+            for (int i = 0; i < categoryIds.Count; i++)
+            {
+                var cmd = conn.CreateCommand();
+                cmd.Transaction = transaction;
+                cmd.CommandText = "UPDATE Categories SET SortOrder = @order WHERE Id = @id";
+                cmd.Parameters.AddWithValue("@order", i);
+                cmd.Parameters.AddWithValue("@id", categoryIds[i]);
+                await cmd.ExecuteNonQueryAsync();
+            }
             await transaction.CommitAsync();
         }
         catch
