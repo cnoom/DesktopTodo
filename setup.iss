@@ -1,7 +1,7 @@
 ; DesktopTodo 安装脚本 - Inno Setup 6
 
 #define MyAppName "DesktopTodo"
-#define MyAppVersion "1.4"
+#define MyAppVersion "1.41"
 #define MyAppPublisher "DesktopTodo"
 #define MyAppExeName "DesktopTodo.exe"
 #define MyAppCopyright "Copyright (C) 2025"
