@@ -48,10 +48,6 @@ public static class TreeViewDragBehavior
         private TaskItemViewModel? _targetVm;
         private Category? _targetCategory;
 
-        // 拖拽预览
-        private DragPreviewAdorner? _dragAdorner;
-        private Window? _parentWindow;
-
         // 插入指示线
         private InsertionIndicator? _insertionIndicator;
 
@@ -64,7 +60,6 @@ public static class TreeViewDragBehavior
             _treeView.DragOver += OnDragOver;
             _treeView.DragLeave += OnDragLeave;
             _treeView.Drop += OnDrop;
-            _treeView.Unloaded += OnUnloaded;
         }
 
         private ITaskDragDropHandler VM => (ITaskDragDropHandler)_treeView.DataContext;
@@ -77,13 +72,6 @@ public static class TreeViewDragBehavior
             _treeView.DragOver -= OnDragOver;
             _treeView.DragLeave -= OnDragLeave;
             _treeView.Drop -= OnDrop;
-            _treeView.Unloaded -= OnUnloaded;
-            CleanupAdorner();
-        }
-
-        private void OnUnloaded(object sender, RoutedEventArgs e)
-        {
-            CleanupAdorner();
         }
 
         private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) =>
@@ -101,9 +89,7 @@ public static class TreeViewDragBehavior
                 if (item?.DataContext is TaskItemViewModel vm)
                 {
                     _draggedItem = vm;
-                    _parentWindow = Window.GetWindow(_treeView);
                     DragDrop.DoDragDrop(item, vm, DragDropEffects.Move);
-                    CleanupAdorner();
                     _draggedItem = null;
                 }
             }
@@ -118,7 +104,6 @@ public static class TreeViewDragBehavior
             else
             {
                 e.Effects = DragDropEffects.Move;
-                ShowDragAdorner(e);
             }
             e.Handled = true;
         }
@@ -132,7 +117,6 @@ public static class TreeViewDragBehavior
                 return;
             }
 
-            UpdateDragAdornerPosition(e);
             ClearLastHighlight();
 
             var targetElement = e.OriginalSource as UIElement;
@@ -215,7 +199,6 @@ public static class TreeViewDragBehavior
         {
             ClearLastHighlight();
             HideInsertionIndicator();
-            CleanupAdorner();
 
             if (_draggedItem == null || !e.Data.GetDataPresent(typeof(TaskItemViewModel))) return;
 
@@ -301,76 +284,6 @@ public static class TreeViewDragBehavior
                 }
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
-
-        #region 拖拽预览装饰器
-
-        private void ShowDragAdorner(DragEventArgs e)
-        {
-            if (_draggedItem == null || _parentWindow == null) return;
-
-            var contentPresenter = _parentWindow.Content as FrameworkElement;
-            if (contentPresenter == null) return;
-
-            var adornerLayer = AdornerLayer.GetAdornerLayer(contentPresenter);
-            if (adornerLayer == null) return;
-
-            // 创建简单的文字预览
-            var previewText = new TextBlock
-            {
-                Text = _draggedItem.Task.Title,
-                Padding = new Thickness(8, 4, 8, 4),
-                Background = new SolidColorBrush(Color.FromArgb(0xD0, 0x40, 0x40, 0x40)),
-                Foreground = Brushes.White,
-                FontSize = 13,
-                MaxWidth = 300,
-                TextTrimming = TextTrimming.CharacterEllipsis
-            };
-
-            _dragAdorner = new DragPreviewAdorner(contentPresenter, previewText, 0.85);
-            adornerLayer.Add(_dragAdorner);
-
-            UpdateDragAdornerPosition(e);
-        }
-
-        private void UpdateDragAdornerPosition(DragEventArgs e)
-        {
-            if (_dragAdorner == null || _parentWindow == null) return;
-
-            var contentPresenter = _parentWindow.Content as FrameworkElement;
-            if (contentPresenter == null) return;
-
-            var adornerLayer = AdornerLayer.GetAdornerLayer(contentPresenter);
-            if (adornerLayer == null) return;
-
-            var pos = e.GetPosition(contentPresenter);
-            _dragAdorner.Offset = new Point(0, 0);
-            _dragAdorner.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-
-            // 设置装饰器位置为鼠标位置附近
-            var transform = contentPresenter.TransformToAncestor(_parentWindow);
-            var origin = transform.Transform(new Point(0, 0));
-
-            _dragAdorner.SetValue(Canvas.LeftProperty, pos.X + 12);
-            _dragAdorner.SetValue(Canvas.TopProperty, pos.Y + 12);
-
-            adornerLayer.Update();
-        }
-
-        private void CleanupAdorner()
-        {
-            if (_dragAdorner == null) return;
-
-            var contentPresenter = _parentWindow?.Content as FrameworkElement;
-            if (contentPresenter != null)
-            {
-                var adornerLayer = AdornerLayer.GetAdornerLayer(contentPresenter);
-                adornerLayer?.Remove(_dragAdorner);
-            }
-
-            _dragAdorner = null;
-        }
-
-        #endregion
 
         #region 插入指示线
 
