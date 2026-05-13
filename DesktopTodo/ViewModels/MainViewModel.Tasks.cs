@@ -1,6 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Linq;
-using System.Windows;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using DesktopTodo.Models;
 
@@ -9,7 +9,7 @@ namespace DesktopTodo.ViewModels;
 public partial class MainViewModel
 {
     [RelayCommand]
-    private void AddTopLevelTask()
+    private async Task AddTopLevelTaskAsync()
     {
         if (string.IsNullOrWhiteSpace(NewTaskTitle)) return;
         var task = new TodoTask
@@ -17,14 +17,14 @@ public partial class MainViewModel
             Title = NewTaskTitle.Trim(),
             CategoryId = SelectedCategory?.Id > 0 ? SelectedCategory.Id : null
         };
-        task.Id = _db.AddTask(task);
-        var vm = new TaskItemViewModel(task, _db.UpdateTask);
+        task.Id = await _db.AddTaskAsync(task);
+        var vm = new TaskItemViewModel(task, _db.UpdateTaskAsync);
         RootTasks.Add(vm);
         NewTaskTitle = string.Empty;
     }
 
     [RelayCommand]
-    private void AddSubTask(TaskItemViewModel parent)
+    private async Task AddSubTaskAsync(TaskItemViewModel parent)
     {
         if (parent == null || string.IsNullOrWhiteSpace(NewTaskTitle)) return;
         var task = new TodoTask
@@ -33,20 +33,20 @@ public partial class MainViewModel
             ParentTaskId = parent.Task.Id,
             CategoryId = parent.Task.CategoryId
         };
-        task.Id = _db.AddTask(task);
-        var vm = new TaskItemViewModel(task, _db.UpdateTask);
+        task.Id = await _db.AddTaskAsync(task);
+        var vm = new TaskItemViewModel(task, _db.UpdateTaskAsync);
         parent.Children.Add(vm);
         NewTaskTitle = string.Empty;
     }
 
     [RelayCommand]
-    private void DeleteTask(TaskItemViewModel? item)
+    private async Task DeleteTaskAsync(TaskItemViewModel? item)
     {
         if (item == null) return;
         var msg = $"确定删除「{item.Task.Title}」及其所有子任务？";
         if (_dialog.Confirm(msg, "确认"))
         {
-            _db.DeleteTask(item.Task.Id);
+            await _db.DeleteTaskAsync(item.Task.Id);
             RemoveFromTree(item);
         }
     }
@@ -66,28 +66,28 @@ public partial class MainViewModel
         foreach (var root in RootTasks) { if (TryRemove(root.Children)) break; }
     }
 
-    public void MoveTask(int taskId, int? newParentId, int newSortOrder) =>
-        _db.UpdateParentAndSortOrder(taskId, newParentId, newSortOrder);
+    public async void MoveTask(int taskId, int? newParentId, int newSortOrder) =>
+        await _db.UpdateParentAndSortOrderAsync(taskId, newParentId, newSortOrder);
 
-    public void ReorderCollection(ObservableCollection<TaskItemViewModel> collection, int? parentId)
+    public async void ReorderCollection(ObservableCollection<TaskItemViewModel> collection, int? parentId)
     {
         for (int i = 0; i < collection.Count; i++)
         {
             var task = collection[i].Task;
             if (task.ParentTaskId != parentId || task.SortOrder != i)
             {
-                _db.UpdateParentAndSortOrder(task.Id, parentId, i);
+                await _db.UpdateParentAndSortOrderAsync(task.Id, parentId, i);
                 task.ParentTaskId = parentId;
                 task.SortOrder = i;
             }
         }
     }
 
-    public void MoveTaskToCategory(TaskItemViewModel item, int? categoryId)
+    public async void MoveTaskToCategory(TaskItemViewModel item, int? categoryId)
     {
         if (item == null) return;
         item.Task.CategoryId = categoryId;
-        _db.UpdateTask(item.Task);
+        await _db.UpdateTaskAsync(item.Task);
         foreach (var child in item.Children)
             MoveTaskToCategory(child, categoryId);
     }

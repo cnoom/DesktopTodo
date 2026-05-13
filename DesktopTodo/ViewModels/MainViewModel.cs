@@ -2,16 +2,17 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using DesktopTodo.Helpers;
 using DesktopTodo.Interfaces;
 using DesktopTodo.Models;
 using DesktopTodo.Services;
-using DesktopTodo.Helpers;
 
 namespace DesktopTodo.ViewModels;
 
-public partial class MainViewModel : ObservableObject
+public partial class MainViewModel : ObservableObject, ITaskDragDropHandler
 {
     private readonly IDatabaseService _db;
     private readonly ISettingsService _settings;
@@ -119,7 +120,7 @@ public partial class MainViewModel : ObservableObject
         UpdateBackgroundBrush();
         UpdateThemeDetection();
 
-        // 初始化数据
+        // 初始化数据（同步调用异步方法，构造函数中无法 await）
         LoadCategories();
         SelectCategoryCommand.Execute(Categories.FirstOrDefault(c => c.Id == 0));
         LoadAllTags();
@@ -214,24 +215,30 @@ public partial class MainViewModel : ObservableObject
     private void UpdateTaskFontBrush() => TaskFontBrush = new SolidColorBrush(TaskFontColor);
 
     // ---- 视图刷新（由分类/标签过滤调用） ----
-    public void RefreshCurrentView()
+    public async void RefreshCurrentView()
     {
         if (SelectedCategory == null || SelectedCategory.Id == 0)
-            LoadTasks();
+            await LoadTasksAsync();
         else if (SelectedCategory.Id == -1)
-            LoadTasksByCategory(null);
+            await LoadTasksByCategoryAsync(null);
         else
-            LoadTasksByCategory(SelectedCategory.Id);
+            await LoadTasksByCategoryAsync(SelectedCategory.Id);
     }
 
-    public void LoadTasks() => BuildTreeFromList(_db.GetAllTasks());
+    public async void LoadTasks() => await LoadTasksAsync();
 
-    private void LoadTasksByCategory(int? categoryId) =>
-        BuildTreeFromList(_db.GetTasksByCategory(categoryId));
+    private async Task LoadTasksAsync() =>
+        BuildTreeFromList(await _db.GetAllTasksAsync());
+
+    private async void LoadTasksByCategory(int? categoryId) =>
+        BuildTreeFromList(await _db.GetTasksByCategoryAsync(categoryId));
+
+    private async Task LoadTasksByCategoryAsync(int? categoryId) =>
+        BuildTreeFromList(await _db.GetTasksByCategoryAsync(categoryId));
 
     private void BuildTreeFromList(List<TodoTask> tasks)
     {
-        var lookup = tasks.ToDictionary(t => t.Id, t => new TaskItemViewModel(t, _db.UpdateTask));
+        var lookup = tasks.ToDictionary(t => t.Id, t => new TaskItemViewModel(t, _db.UpdateTaskAsync));
         RootTasks.Clear();
         foreach (var task in tasks)
         {
@@ -252,9 +259,9 @@ public partial class MainViewModel : ObservableObject
     /// <summary>
     /// 更新各分类的任务数量显示（复用已加载的任务数据，避免重复查询）
     /// </summary>
-    private void UpdateCategoryTaskCounts(List<TodoTask>? preloadedTasks = null)
+    private async void UpdateCategoryTaskCounts(List<TodoTask>? preloadedTasks = null)
     {
-        var allTasks = preloadedTasks ?? _db.GetAllTasks();
+        var allTasks = preloadedTasks ?? await _db.GetAllTasksAsync();
         var totalCount = allTasks.Count;
 
         foreach (var cat in Categories)
@@ -273,5 +280,4 @@ public partial class MainViewModel : ObservableObject
             }
         }
     }
-    
 }

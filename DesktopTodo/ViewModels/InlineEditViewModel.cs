@@ -13,7 +13,7 @@ namespace DesktopTodo.ViewModels
     public class InlineEditViewModel : ObservableObject
     {
         private readonly TaskItemViewModel _taskVm;
-        private Action _onClosed;
+        private Action? _onClosed;
 
         private string _editTitle;
         private byte _r;
@@ -54,7 +54,7 @@ namespace DesktopTodo.ViewModels
         public ICommand CancelCommand { get; }
         public ICommand ClearColorCommand { get; }
 
-        public InlineEditViewModel(TaskItemViewModel taskVm, Action onClosed)
+        public InlineEditViewModel(TaskItemViewModel taskVm, Action? onClosed)
         {
             _taskVm = taskVm;
             _onClosed = onClosed;

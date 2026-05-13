@@ -1,43 +1,25 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace DesktopTodo.Models;
 
-public class Category : INotifyPropertyChanged
+/// <summary>
+/// 任务分类模型，使用 CommunityToolkit 源生成器自动生成属性变更通知
+/// </summary>
+public partial class Category : ObservableObject
 {
+    [ObservableProperty]
     private string _name = string.Empty;
+
+    [ObservableProperty]
     private bool _isSelected;
-    private int _taskCount;
-
-    public int Id { get; set; }
-
-    public string Name
-    {
-        get => _name;
-        set { _name = value; OnPropertyChanged(); }
-    }
-
-    public bool IsSelected
-    {
-        get => _isSelected;
-        set { _isSelected = value; OnPropertyChanged(); }
-    }
 
     /// <summary>
     /// 该分类下的任务数量（"全部" 显示总任务数）
     /// </summary>
-    public int TaskCount
-    {
-        get => _taskCount;
-        set { _taskCount = value; OnPropertyChanged(); }
-    }
+    [ObservableProperty]
+    private int _taskCount;
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
+    public int Id { get; set; }
 
     public override string ToString() => Name;
 }

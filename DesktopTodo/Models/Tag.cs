@@ -1,33 +1,19 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace DesktopTodo.Models;
 
-public class Tag : INotifyPropertyChanged
+/// <summary>
+/// 标签模型，使用 CommunityToolkit 源生成器自动生成属性变更通知
+/// </summary>
+public partial class Tag : ObservableObject
 {
+    [ObservableProperty]
     private string _name = string.Empty;
+
+    [ObservableProperty]
     private bool _isSelected;
 
     public int Id { get; set; }
-
-    public string Name
-    {
-        get => _name;
-        set { _name = value; OnPropertyChanged(); }
-    }
-
-    public bool IsSelected
-    {
-        get => _isSelected;
-        set { _isSelected = value; OnPropertyChanged(); }
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
 
     public override string ToString() => Name;
 }

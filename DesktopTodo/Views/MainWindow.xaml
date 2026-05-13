@@ -13,7 +13,8 @@
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
-        PreviewKeyDown="Window_PreviewKeyDown">
+>
+
 
     <!-- 键盘快捷键（全局命令，TextBox 获得焦点时不会触发） -->
     <Window.InputBindings>
@@ -522,9 +523,6 @@
                 CornerRadius="12"
                 BorderBrush="{Binding DataContext.AdaptiveBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                 BorderThickness="1"
-                MouseLeftButtonDown="MiniModeIcon_MouseLeftButtonDown"
-                MouseMove="MiniModeIcon_MouseMove"
-                MouseLeftButtonUp="MiniModeIcon_MouseLeftButtonUp"
                 Cursor="Hand"
                 ToolTip="点击恢复窗口 | 拖拽移动位置"
                 RenderTransformOrigin="0.5,0.5">

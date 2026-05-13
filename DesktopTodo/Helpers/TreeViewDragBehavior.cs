@@ -3,8 +3,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using DesktopTodo.Interfaces;
 using DesktopTodo.Models;
 using DesktopTodo.ViewModels;
 
@@ -46,6 +48,13 @@ public static class TreeViewDragBehavior
         private TaskItemViewModel? _targetVm;
         private Category? _targetCategory;
 
+        // 拖拽预览
+        private DragPreviewAdorner? _dragAdorner;
+        private Window? _parentWindow;
+
+        // 插入指示线
+        private InsertionIndicator? _insertionIndicator;
+
         public DragHandler(TreeView treeView)
         {
             _treeView = treeView;
@@ -55,9 +64,10 @@ public static class TreeViewDragBehavior
             _treeView.DragOver += OnDragOver;
             _treeView.DragLeave += OnDragLeave;
             _treeView.Drop += OnDrop;
+            _treeView.Unloaded += OnUnloaded;
         }
 
-        private MainViewModel VM => (MainViewModel)_treeView.DataContext;
+        private ITaskDragDropHandler VM => (ITaskDragDropHandler)_treeView.DataContext;
 
         public void Dispose()
         {
@@ -67,6 +77,13 @@ public static class TreeViewDragBehavior
             _treeView.DragOver -= OnDragOver;
             _treeView.DragLeave -= OnDragLeave;
             _treeView.Drop -= OnDrop;
+            _treeView.Unloaded -= OnUnloaded;
+            CleanupAdorner();
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            CleanupAdorner();
         }
 
         private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) =>
@@ -84,7 +101,9 @@ public static class TreeViewDragBehavior
                 if (item?.DataContext is TaskItemViewModel vm)
                 {
                     _draggedItem = vm;
+                    _parentWindow = Window.GetWindow(_treeView);
                     DragDrop.DoDragDrop(item, vm, DragDropEffects.Move);
+                    CleanupAdorner();
                     _draggedItem = null;
                 }
             }
@@ -99,6 +118,7 @@ public static class TreeViewDragBehavior
             else
             {
                 e.Effects = DragDropEffects.Move;
+                ShowDragAdorner(e);
             }
             e.Handled = true;
         }
@@ -112,6 +132,7 @@ public static class TreeViewDragBehavior
                 return;
             }
 
+            UpdateDragAdornerPosition(e);
             ClearLastHighlight();
 
             var targetElement = e.OriginalSource as UIElement;
@@ -124,7 +145,8 @@ public static class TreeViewDragBehavior
                 _targetVm = null;
                 _targetCategory = categoryBorder.DataContext as Category;
                 _lastHighlightedItem = categoryBorder;
-                categoryBorder.Background = new SolidColorBrush(Color.FromArgb(0x60, 0x4C, 0xAF, 0x50));
+                // 分类高亮：绿色半透明背景
+                categoryBorder.Background = new SolidColorBrush(Color.FromArgb(0x40, 0x4C, 0xAF, 0x50));
                 e.Effects = DragDropEffects.Move;
             }
             else if (targetItem == null)
@@ -144,19 +166,20 @@ public static class TreeViewDragBehavior
                     if (pos.Y < headerHeight * 0.3)
                     {
                         _dropTargetType = DropTargetType.Before;
-                        headerBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xA5, 0x00));
-                        headerBorder.BorderThickness = new Thickness(0, 3, 0, 0);
+                        // 上方插入指示线：橙色
+                        ShowInsertionIndicator(headerBorder, true);
                     }
                     else if (pos.Y > headerHeight * 0.7)
                     {
                         _dropTargetType = DropTargetType.After;
-                        headerBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xA5, 0x00));
-                        headerBorder.BorderThickness = new Thickness(0, 0, 0, 3);
+                        // 下方插入指示线：橙色
+                        ShowInsertionIndicator(headerBorder, false);
                     }
                     else
                     {
                         _dropTargetType = DropTargetType.Child;
-                        headerBorder.Background = new SolidColorBrush(Color.FromArgb(0x60, 0x1E, 0x90, 0xFF));
+                        // 子项高亮：蓝色半透明背景
+                        headerBorder.Background = new SolidColorBrush(Color.FromArgb(0x40, 0x1E, 0x90, 0xFF));
                     }
                     _targetVm = targetItem.DataContext as TaskItemViewModel;
                     _targetCategory = null;
@@ -182,6 +205,7 @@ public static class TreeViewDragBehavior
         private void OnDragLeave(object sender, DragEventArgs e)
         {
             ClearLastHighlight();
+            HideInsertionIndicator();
             _dropTargetType = DropTargetType.None;
             _targetVm = null;
             _targetCategory = null;
@@ -190,6 +214,8 @@ public static class TreeViewDragBehavior
         private void OnDrop(object sender, DragEventArgs e)
         {
             ClearLastHighlight();
+            HideInsertionIndicator();
+            CleanupAdorner();
 
             if (_draggedItem == null || !e.Data.GetDataPresent(typeof(TaskItemViewModel))) return;
 
@@ -276,6 +302,104 @@ public static class TreeViewDragBehavior
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
 
+        #region 拖拽预览装饰器
+
+        private void ShowDragAdorner(DragEventArgs e)
+        {
+            if (_draggedItem == null || _parentWindow == null) return;
+
+            var contentPresenter = _parentWindow.Content as FrameworkElement;
+            if (contentPresenter == null) return;
+
+            var adornerLayer = AdornerLayer.GetAdornerLayer(contentPresenter);
+            if (adornerLayer == null) return;
+
+            // 创建简单的文字预览
+            var previewText = new TextBlock
+            {
+                Text = _draggedItem.Task.Title,
+                Padding = new Thickness(8, 4, 8, 4),
+                Background = new SolidColorBrush(Color.FromArgb(0xD0, 0x40, 0x40, 0x40)),
+                Foreground = Brushes.White,
+                FontSize = 13,
+                MaxWidth = 300,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+
+            _dragAdorner = new DragPreviewAdorner(contentPresenter, previewText, 0.85);
+            adornerLayer.Add(_dragAdorner);
+
+            UpdateDragAdornerPosition(e);
+        }
+
+        private void UpdateDragAdornerPosition(DragEventArgs e)
+        {
+            if (_dragAdorner == null || _parentWindow == null) return;
+
+            var contentPresenter = _parentWindow.Content as FrameworkElement;
+            if (contentPresenter == null) return;
+
+            var adornerLayer = AdornerLayer.GetAdornerLayer(contentPresenter);
+            if (adornerLayer == null) return;
+
+            var pos = e.GetPosition(contentPresenter);
+            _dragAdorner.Offset = new Point(0, 0);
+            _dragAdorner.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+            // 设置装饰器位置为鼠标位置附近
+            var transform = contentPresenter.TransformToAncestor(_parentWindow);
+            var origin = transform.Transform(new Point(0, 0));
+
+            _dragAdorner.SetValue(Canvas.LeftProperty, pos.X + 12);
+            _dragAdorner.SetValue(Canvas.TopProperty, pos.Y + 12);
+
+            adornerLayer.Update();
+        }
+
+        private void CleanupAdorner()
+        {
+            if (_dragAdorner == null) return;
+
+            var contentPresenter = _parentWindow?.Content as FrameworkElement;
+            if (contentPresenter != null)
+            {
+                var adornerLayer = AdornerLayer.GetAdornerLayer(contentPresenter);
+                adornerLayer?.Remove(_dragAdorner);
+            }
+
+            _dragAdorner = null;
+        }
+
+        #endregion
+
+        #region 插入指示线
+
+        private void ShowInsertionIndicator(Border headerBorder, bool isBefore)
+        {
+            HideInsertionIndicator();
+
+            var adornerLayer = AdornerLayer.GetAdornerLayer(headerBorder);
+            if (adornerLayer == null) return;
+
+            _insertionIndicator = new InsertionIndicator(headerBorder, isBefore);
+            adornerLayer.Add(_insertionIndicator);
+        }
+
+        private void HideInsertionIndicator()
+        {
+            if (_insertionIndicator == null) return;
+
+            var adornedElement = _insertionIndicator.AdornedElement;
+            if (adornedElement != null)
+            {
+                var adornerLayer = AdornerLayer.GetAdornerLayer(adornedElement);
+                adornerLayer?.Remove(_insertionIndicator);
+            }
+            _insertionIndicator = null;
+        }
+
+        #endregion
+
         private void ClearLastHighlight()
         {
             if (_lastHighlightedItem != null)
@@ -285,6 +409,7 @@ public static class TreeViewDragBehavior
                 _lastHighlightedItem.BorderThickness = new Thickness(0);
                 _lastHighlightedItem = null;
             }
+            HideInsertionIndicator();
         }
 
         private bool IsDescendant(TaskItemViewModel parent, TaskItemViewModel potentialDescendant)

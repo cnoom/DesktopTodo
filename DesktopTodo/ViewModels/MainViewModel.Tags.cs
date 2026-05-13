@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using DesktopTodo.Models;
 
@@ -8,35 +9,35 @@ namespace DesktopTodo.ViewModels;
 
 public partial class MainViewModel
 {
-    public void LoadAllTags() => AllTags = new ObservableCollection<Tag>(_db.GetAllTags());
+    public async void LoadAllTags() => AllTags = new ObservableCollection<Tag>(await _db.GetAllTagsAsync());
 
-    public void LoadTaskTags(TaskItemViewModel vm)
+    public async void LoadTaskTags(TaskItemViewModel vm)
     {
         vm.Tags.Clear();
-        foreach (var tag in _db.GetTagsForTask(vm.Task.Id))
+        foreach (var tag in await _db.GetTagsForTaskAsync(vm.Task.Id))
             vm.Tags.Add(tag);
     }
 
-    public void AddTagToSelectedTask(string tagName)
+    public async void AddTagToSelectedTask(string tagName)
     {
         if (SelectedTask == null || string.IsNullOrWhiteSpace(tagName)) return;
         var trimmed = tagName.Trim();
-        int tagId = _db.AddTag(trimmed);
-        _db.AddTagToTask(SelectedTask.Task.Id, tagId);
+        int tagId = await _db.AddTagAsync(trimmed);
+        await _db.AddTagToTaskAsync(SelectedTask.Task.Id, tagId);
         LoadTaskTags(SelectedTask);
         if (AllTags.All(t => t.Name != trimmed))
             AllTags.Add(new Tag { Id = tagId, Name = trimmed });
         OnPropertyChanged(nameof(RootTasks));
     }
 
-    public void RemoveTagFromTask(TaskItemViewModel vm, Tag tag)
+    public async void RemoveTagFromTask(TaskItemViewModel vm, Tag tag)
     {
-        _db.RemoveTagFromTask(vm.Task.Id, tag.Id);
+        await _db.RemoveTagFromTaskAsync(vm.Task.Id, tag.Id);
         LoadTaskTags(vm);
-        var remainingTasks = _db.GetTaskIdsWithTag(tag.Id);
+        var remainingTasks = await _db.GetTaskIdsWithTagAsync(tag.Id);
         if (remainingTasks.Count == 0)
         {
-            _db.DeleteTagCascade(tag.Id);
+            await _db.DeleteTagCascadeAsync(tag.Id);
             LoadAllTags();
             if (SelectedFilterTag != null && SelectedFilterTag.Name == tag.Name)
             {
@@ -47,9 +48,9 @@ public partial class MainViewModel
         OnPropertyChanged(nameof(RootTasks));
     }
 
-    public void DeleteTag(Tag tag)
+    public async void DeleteTag(Tag tag)
     {
-        _db.DeleteTagCascade(tag.Id);
+        await _db.DeleteTagCascadeAsync(tag.Id);
         LoadAllTags();
         if (SelectedFilterTag != null && SelectedFilterTag.Name == tag.Name)
         {
@@ -60,7 +61,7 @@ public partial class MainViewModel
     }
 
     [RelayCommand]
-    private void ToggleFilterByTag(Tag? tag)
+    private async Task ToggleFilterByTagAsync(Tag? tag)
     {
         if (tag == null) return;
         foreach (var t in AllTags) t.IsSelected = false;
@@ -73,12 +74,13 @@ public partial class MainViewModel
         {
             SelectedFilterTag = tag;
             tag.IsSelected = true;
-            FilterTasksByTag(tag.Id);
+            await FilterTasksByTagAsync(tag.Id);
         }
     }
 
-    private void FilterTasksByTag(int tagId) => FilterTasksByIds(_db.GetTaskIdsWithTag(tagId).ToHashSet());
-
-    private void FilterTasksByIds(HashSet<int> allowedIds) =>
-        BuildTreeFromList(_db.GetTasksByTagIds(allowedIds));
+    private async Task FilterTasksByTagAsync(int tagId)
+    {
+        var ids = (await _db.GetTaskIdsWithTagAsync(tagId)).ToHashSet();
+        BuildTreeFromList(await _db.GetTasksByTagIdsAsync(ids));
+    }
 }
