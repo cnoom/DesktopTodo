@@ -28,7 +28,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
-Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "chinesesimplified"; MessagesFile: "compiler:Default.isl"
 
 [Messages]
 chinesesimplified.WelcomeLabel2=这将在您的计算机上安装 {#MyAppName} {#MyAppVersion}。%n%n一个轻量级的桌面待办事项管理工具。%n%n建议在继续之前关闭所有其他应用程序。
