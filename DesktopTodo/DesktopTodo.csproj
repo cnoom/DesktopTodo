@@ -6,9 +6,9 @@
         <UseWPF>true</UseWPF>
         <UseWindowsForms>true</UseWindowsForms>
         <Nullable>enable</Nullable>
-        <Version>1.41</Version>
-        <AssemblyVersion>1.41</AssemblyVersion>
-        <FileVersion>1.41</FileVersion>
+        <Version>1.42</Version>
+        <AssemblyVersion>1.42</AssemblyVersion>
+        <FileVersion>1.42</FileVersion>
         <ApplicationIcon>Assets\app.ico</ApplicationIcon>
 
         <!-- 自包含部署：打包 .NET 运行时，用户无需单独安装 -->
