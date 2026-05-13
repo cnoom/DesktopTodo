@@ -232,12 +232,27 @@ public class DatabaseService : IDatabaseService
             var cmd = conn.CreateCommand();
             cmd.Transaction = transaction;
 
-            cmd.CommandText = "DELETE FROM Tasks WHERE ParentTaskId = @id";
+            // 使用递归 CTE 查找所有后代任务（含自身），支持无限层级嵌套
+            cmd.CommandText = @"
+                WITH RECURSIVE Descendants AS (
+                    SELECT Id FROM Tasks WHERE Id = @id
+                    UNION ALL
+                    SELECT t.Id FROM Tasks t
+                    INNER JOIN Descendants d ON t.ParentTaskId = d.Id
+                )
+                DELETE FROM TaskTags WHERE TaskId IN (SELECT Id FROM Descendants)";
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
 
             cmd.Parameters.Clear();
-            cmd.CommandText = "DELETE FROM Tasks WHERE Id = @id";
+            cmd.CommandText = @"
+                WITH RECURSIVE Descendants AS (
+                    SELECT Id FROM Tasks WHERE Id = @id
+                    UNION ALL
+                    SELECT t.Id FROM Tasks t
+                    INNER JOIN Descendants d ON t.ParentTaskId = d.Id
+                )
+                DELETE FROM Tasks WHERE Id IN (SELECT Id FROM Descendants)";
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
 

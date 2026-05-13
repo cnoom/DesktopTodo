@@ -604,15 +604,13 @@ public partial class MainWindow : Window
         // 防止重复编辑
         if (textBlock.Visibility != Visibility.Visible) return;
 
-        // 从 TextBlock 向上遍历视觉树找到外层行 Grid（Margin="2,3" 的那个）
-        // 外层 Grid 包含：内层内容 Grid + 操作按钮浮动层 StackPanel
+        // 从 TextBlock 向上遍历视觉树找到外层行 Grid
         Panel? outerGrid = null;
         DependencyObject current = VisualTreeHelper.GetParent(textBlock);
         while (current != null)
         {
             if (current is Grid g && VisualTreeHelper.GetChildrenCount(g) > 0)
             {
-                // 检查这个 Grid 的子元素中是否同时包含 Grid 和 StackPanel（即内层+按钮层）
                 bool hasInnerGrid = false;
                 bool hasStackPanel = false;
                 for (int i = 0; i < VisualTreeHelper.GetChildrenCount(g); i++)
@@ -632,95 +630,6 @@ public partial class MainWindow : Window
 
         if (outerGrid == null) return;
 
-        // 编辑面板：TextBox + RGB 颜色编辑
-        var editPanel = new StackPanel
-        {
-            MinWidth = 280
-        };
-
-        var textBox = new TextBox
-        {
-            Text = vm.Task.Title,
-            MinWidth = 200,
-            Height = Math.Max(textBlock.ActualHeight, 24)
-        };
-
-        // 颜色预览条
-        var colorPreview = new Border
-        {
-            Height = 4,
-            CornerRadius = new CornerRadius(2),
-            Margin = new Thickness(0, 4, 0, 0),
-            HorizontalAlignment = HorizontalAlignment.Stretch
-        };
-
-        // 解析当前颜色初始化 RGB
-        byte initR = 0, initG = 0, initB = 0;
-        if (!string.IsNullOrEmpty(vm.Task.Color))
-        {
-            try
-            {
-                var brush = (SolidColorBrush?)new BrushConverter().ConvertFrom(vm.Task.Color);
-                if (brush != null)
-                {
-                    initR = brush.Color.R;
-                    initG = brush.Color.G;
-                    initB = brush.Color.B;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[MainWindow] 解析任务颜色失败: {ex.Message}");
-            }
-        }
-
-        // 更新颜色预览条
-        void UpdateColorPreview()
-        {
-            colorPreview.Background = new SolidColorBrush(Color.FromRgb(initR, initG, initB));
-            vm.Task.Color = $"#{initR:X2}{initG:X2}{initB:X2}";
-        }
-        UpdateColorPreview();
-
-        // RGB 滑动条面板
-        var rgbPanel = new Grid
-        {
-            Margin = new Thickness(0, 2, 0, 0)
-        };
-        rgbPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
-        rgbPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        rgbPanel.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
-        rgbPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        rgbPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        rgbPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-        // R 滑动条
-        var rLabel = new TextBlock { Text = "R", VerticalAlignment = VerticalAlignment.Center, Foreground = Brushes.Red };
-        Grid.SetRow(rLabel, 0); Grid.SetColumn(rLabel, 0);
-        var rSlider = new Slider { Minimum = 0, Maximum = 255, Value = initR, TickFrequency = 1, IsSnapToTickEnabled = true, Margin = new Thickness(4, 2, 0, 2) };
-        Grid.SetRow(rSlider, 0); Grid.SetColumn(rSlider, 1);
-        var rValue = new TextBlock { Text = initR.ToString(), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
-        Grid.SetRow(rValue, 0); Grid.SetColumn(rValue, 2);
-        rSlider.ValueChanged += (s, args) => { initR = (byte)rSlider.Value; rValue.Text = initR.ToString(); UpdateColorPreview(); };
-
-        // G 滑动条
-        var gLabel = new TextBlock { Text = "G", VerticalAlignment = VerticalAlignment.Center, Foreground = Brushes.Green };
-        Grid.SetRow(gLabel, 1); Grid.SetColumn(gLabel, 0);
-        var gSlider = new Slider { Minimum = 0, Maximum = 255, Value = initG, TickFrequency = 1, IsSnapToTickEnabled = true, Margin = new Thickness(4, 2, 0, 2) };
-        Grid.SetRow(gSlider, 1); Grid.SetColumn(gSlider, 1);
-        var gValue = new TextBlock { Text = initG.ToString(), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
-        Grid.SetRow(gValue, 1); Grid.SetColumn(gValue, 2);
-        gSlider.ValueChanged += (s, args) => { initG = (byte)gSlider.Value; gValue.Text = initG.ToString(); UpdateColorPreview(); };
-
-        // B 滑动条
-        var bLabel = new TextBlock { Text = "B", VerticalAlignment = VerticalAlignment.Center, Foreground = Brushes.DodgerBlue };
-        Grid.SetRow(bLabel, 2); Grid.SetColumn(bLabel, 0);
-        var bSlider = new Slider { Minimum = 0, Maximum = 255, Value = initB, TickFrequency = 1, IsSnapToTickEnabled = true, Margin = new Thickness(4, 2, 0, 2) };
-        Grid.SetRow(bSlider, 2); Grid.SetColumn(bSlider, 1);
-        var bValue = new TextBlock { Text = initB.ToString(), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
-        Grid.SetRow(bValue, 2); Grid.SetColumn(bValue, 2);
-        bSlider.ValueChanged += (s, args) => { initB = (byte)bSlider.Value; bValue.Text = initB.ToString(); UpdateColorPreview(); };
-
         bool editEnded = false;
         bool canClose = false;
 
@@ -736,124 +645,60 @@ public partial class MainWindow : Window
         };
         graceTimer.Start();
 
-        void EndEdit(bool save)
+        // 创建编辑面板（先声明，EndEdit 回调需要引用）
+        var editVm = new InlineEditViewModel(vm, null);
+        InlineEditPanel inlineEditPanel = new InlineEditPanel(editVm);
+
+        void EndEdit()
         {
             if (editEnded) return;
             editEnded = true;
             graceTimer.Stop();
 
-            if (save) vm.Task.Title = textBox.Text;
-            outerGrid.Children.Remove(editPanel);
+            outerGrid.Children.Remove(inlineEditPanel);
 
             // 恢复拖拽功能
             TreeViewDragBehavior.SetIsEnabled(TaskTreeView, true);
 
             // 恢复所有原始子元素的可见性
-            // 使用 ClearValue 恢复默认值，避免覆盖 DataTemplate 触发器
             for (int i = 0; i < outerGrid.Children.Count; i++)
             {
                 var child = outerGrid.Children[i];
                 if (child is StackPanel)
-                    child.ClearValue(VisibilityProperty); // ActionButtonsPanel 恢复由触发器控制
+                    child.ClearValue(VisibilityProperty);
                 else
                     child.Visibility = Visibility.Visible;
             }
         }
 
-        // 清除颜色按钮
-        var clearBtn = new Button
+        // 设置 EndEdit 回调（延迟赋值，因为 EndEdit 引用了 inlineEditPanel）
+        editVm.SetOnClosed(EndEdit);
+
+        inlineEditPanel.LostFocus += (s, args) =>
         {
-            Content = "清除颜色",
-            FontSize = 10,
-            Padding = new Thickness(4, 1, 4, 1),
-            Margin = new Thickness(0, 4, 0, 0),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Focusable = false,
-            Cursor = Cursors.Hand
-        };
-        clearBtn.Click += (s, args) =>
-        {
-            vm.Task.Color = null;
-            colorPreview.Background = Brushes.Transparent;
-            rSlider.Value = 0; gSlider.Value = 0; bSlider.Value = 0;
-        };
-
-        // 保存退出按钮
-        var saveBtn = new Button
-        {
-            Content = "保存",
-            FontSize = 11,
-            Padding = new Thickness(12, 3, 12, 3),
-            Margin = new Thickness(0, 6, 0, 0),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Cursor = Cursors.Hand
-        };
-        saveBtn.Click += (s, args) => EndEdit(true);
-
-        rgbPanel.Children.Add(rLabel);
-        rgbPanel.Children.Add(rSlider);
-        rgbPanel.Children.Add(rValue);
-        rgbPanel.Children.Add(gLabel);
-        rgbPanel.Children.Add(gSlider);
-        rgbPanel.Children.Add(gValue);
-        rgbPanel.Children.Add(bLabel);
-        rgbPanel.Children.Add(bSlider);
-        rgbPanel.Children.Add(bValue);
-
-        editPanel.Children.Add(textBox);
-        editPanel.Children.Add(colorPreview);
-        editPanel.Children.Add(rgbPanel);
-
-        // 按钮行：清除颜色 + 保存
-        var buttonRow = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Margin = new Thickness(0, 4, 0, 0)
-        };
-        buttonRow.Children.Add(clearBtn);
-        clearBtn.Margin = new Thickness(0);
-        buttonRow.Children.Add(saveBtn);
-        saveBtn.Margin = new Thickness(8, 0, 0, 0);
-
-        editPanel.Children.Add(buttonRow);
-
-        textBox.LostFocus += (s, args) =>
-        {
-            // 保护期内不处理 LostFocus
             if (!canClose) return;
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 if (editEnded) return;
-                if (!editPanel.IsAncestorOf(Keyboard.FocusedElement as DependencyObject))
-                    EndEdit(true);
+                if (!inlineEditPanel.IsAncestorOf(Keyboard.FocusedElement as DependencyObject))
+                    editVm.SaveCommand.Execute(null);
             }), System.Windows.Threading.DispatcherPriority.Background);
         };
 
-        // 在编辑面板上用隧道事件统一处理快捷键，无论焦点在 TextBox 还是 Slider 上都能响应
-        editPanel.PreviewKeyDown += (s, args) =>
-        {
-            if (args.Key == Key.Enter) { args.Handled = true; EndEdit(true); }
-            else if (args.Key == Key.Escape) { args.Handled = true; EndEdit(false); }
-        };
-
-        // 禁用拖拽，避免编辑时误触拖拽操作
+        // 禁用拖拽，避免编辑时误触
         TreeViewDragBehavior.SetIsEnabled(TaskTreeView, false);
 
-        // 隐藏所有原始子元素，进入纯编辑状态
+        // 隐藏所有原始子元素
         foreach (UIElement child in outerGrid.Children)
         {
             child.Visibility = Visibility.Collapsed;
         }
 
         // 添加编辑面板
-        outerGrid.Children.Add(editPanel);
+        outerGrid.Children.Add(inlineEditPanel);
 
-        // 延迟聚焦：确保编辑面板完成布局后再获取焦点，避免被 TreeViewItem 抢回
-        Dispatcher.BeginInvoke(new Action(() =>
-        {
-            textBox.Focus();
-            textBox.SelectAll();
-        }), System.Windows.Threading.DispatcherPriority.Loaded);
+        // 延迟聚焦
+        inlineEditPanel.FocusTitle();
     }
 
     private void DeleteButton_Click(object sender, RoutedEventArgs e)
