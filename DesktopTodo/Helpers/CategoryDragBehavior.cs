@@ -98,7 +98,13 @@ public static class CategoryDragBehavior
 
         private void OnDragOver(object sender, DragEventArgs e)
         {
-            if (_draggedCategory == null || !e.Data.GetDataPresent(typeof(Category)))
+            // 非分类拖拽数据，不拦截，让事件冒泡到外层（如任务拖到分类）
+            if (!e.Data.GetDataPresent(typeof(Category)))
+            {
+                return;
+            }
+
+            if (_draggedCategory == null)
             {
                 e.Effects = DragDropEffects.None;
                 e.Handled = true;
@@ -149,7 +155,13 @@ public static class CategoryDragBehavior
         {
             ClearInsertionIndicator();
 
-            if (_draggedCategory == null || !e.Data.GetDataPresent(typeof(Category))) return;
+            // 非分类拖拽数据，不拦截，让事件冒泡
+            if (!e.Data.GetDataPresent(typeof(Category)))
+            {
+                return;
+            }
+
+            if (_draggedCategory == null) return;
 
             var targetCategory = GetCategoryFromPosition(e.OriginalSource);
             if (targetCategory?.IsFixed == true)
