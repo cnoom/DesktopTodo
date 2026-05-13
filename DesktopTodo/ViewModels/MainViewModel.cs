@@ -252,16 +252,16 @@ public partial class MainViewModel : ObservableObject, ITaskDragDropHandler
         // 更新空状态
         IsEmptyState = RootTasks.Count == 0;
 
-        // 更新分类任务计数（复用已加载的数据）
-        UpdateCategoryTaskCounts(tasks);
+        // 更新分类任务计数（始终使用全量数据，避免过滤后计数错误）
+        UpdateCategoryTaskCounts();
     }
 
     /// <summary>
-    /// 更新各分类的任务数量显示（复用已加载的任务数据，避免重复查询）
+    /// 更新各分类的任务数量显示（查询全量数据确保计数准确）
     /// </summary>
-    private async void UpdateCategoryTaskCounts(List<TodoTask>? preloadedTasks = null)
+    private async void UpdateCategoryTaskCounts()
     {
-        var allTasks = preloadedTasks ?? await _db.GetAllTasksAsync();
+        var allTasks = await _db.GetAllTasksAsync();
         var totalCount = allTasks.Count;
 
         foreach (var cat in Categories)
