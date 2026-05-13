@@ -18,6 +18,9 @@ public partial class MainWindow : Window
     private MiniModeHelper _miniMode = null!;
     private KeyboardShortcutManager _keyboardManager = null!;
 
+    // 拖拽到分类时的高亮状态
+    private Border? _dragOverCategoryBorder;
+
     // 迷你模式下保存正常窗口位置（供 WindowPositionHelper 使用）
     public double NormalLeft { get; private set; }
     public double NormalTop { get; private set; }
@@ -321,16 +324,30 @@ public partial class MainWindow : Window
         if (e.Data.GetDataPresent(typeof(TaskItemViewModel)))
         {
             e.Effects = DragDropEffects.Move;
+
+            // 清除上次高亮
+            ClearDragOverCategoryHighlight();
+
+            // 高亮鼠标下方的分类项
+            var categoryBorder = VisualTreeHelpers.FindAncestorOfCategoryBorder(e.OriginalSource as DependencyObject);
+            if (categoryBorder != null)
+            {
+                _dragOverCategoryBorder = categoryBorder;
+                categoryBorder.Background = new SolidColorBrush(Color.FromArgb(0x40, 0x4C, 0xAF, 0x50));
+            }
         }
         else
         {
             e.Effects = DragDropEffects.None;
+            ClearDragOverCategoryHighlight();
         }
         e.Handled = true;
     }
 
     private void SidebarBorder_Drop(object sender, DragEventArgs e)
     {
+        ClearDragOverCategoryHighlight();
+
         if (e.Data.GetData(typeof(TaskItemViewModel)) is TaskItemViewModel draggedItem)
         {
             var categoryBorder = VisualTreeHelpers.FindAncestorOfCategoryBorder(e.OriginalSource as DependencyObject);
@@ -340,6 +357,20 @@ public partial class MainWindow : Window
                 VM.MoveTaskToCategory(draggedItem, catId);
                 VM.RefreshCurrentView();
             }
+        }
+    }
+
+    private void SidebarBorder_DragLeave(object sender, DragEventArgs e)
+    {
+        ClearDragOverCategoryHighlight();
+    }
+
+    private void ClearDragOverCategoryHighlight()
+    {
+        if (_dragOverCategoryBorder != null)
+        {
+            _dragOverCategoryBorder.Background = Brushes.Transparent;
+            _dragOverCategoryBorder = null;
         }
     }
 

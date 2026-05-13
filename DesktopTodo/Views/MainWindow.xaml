@@ -62,7 +62,8 @@
                         CornerRadius="{StaticResource CornerRadiusMedium}"
                         Padding="6" AllowDrop="True"
                         DragOver="SidebarBorder_DragOver"
-                        Drop="SidebarBorder_Drop">
+                        Drop="SidebarBorder_Drop"
+                        DragLeave="SidebarBorder_DragLeave">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
