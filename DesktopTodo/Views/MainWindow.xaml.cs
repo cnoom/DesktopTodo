@@ -21,11 +21,11 @@ public partial class MainWindow : Window
     // 拖拽到分类时的高亮状态
     private Border? _dragOverCategoryBorder;
 
-    // 迷你模式下保存正常窗口位置（供 WindowPositionHelper 使用）
-    public double NormalLeft { get; private set; }
-    public double NormalTop { get; private set; }
-    public double NormalWidth { get; private set; }
-    public double NormalHeight { get; private set; }
+    // 迷你模式下保存正常窗口位置（由 MiniModeHelper 管理）
+    public double NormalLeft => _miniMode?.NormalLeft ?? Left;
+    public double NormalTop => _miniMode?.NormalTop ?? Top;
+    public double NormalWidth => _miniMode?.NormalWidth ?? Width;
+    public double NormalHeight => _miniMode?.NormalHeight ?? Height;
 
     public MainWindow()
     {

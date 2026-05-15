@@ -39,11 +39,28 @@ public static class WindowPositionHelper
     #endregion
 
     /// <summary>
-    /// 检查指定矩形是否与任意显示器的工作区域有交集
+    /// 检查指定矩形是否与任意显示器的工作区域有交集。
+    /// 输入为 WPF DIP 坐标，自动处理 DPI 缩放转换。
     /// </summary>
     public static bool IsPositionOnScreen(double x, double y, double w, double h)
     {
-        var rect = new RECT { Left = (int)x, Top = (int)y, Right = (int)(x + w), Bottom = (int)(y + h) };
+        // 获取主窗口的 DPI 缩放因子（DIP → 物理像素）
+        double dpiScaleX = 1.0, dpiScaleY = 1.0;
+        var source = PresentationSource.FromVisual(Application.Current?.MainWindow);
+        if (source?.CompositionTarget != null)
+        {
+            dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
+            dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
+        }
+
+        // 将 DIP 坐标转换为物理像素坐标
+        var rect = new RECT
+        {
+            Left = (int)(x * dpiScaleX),
+            Top = (int)(y * dpiScaleY),
+            Right = (int)((x + w) * dpiScaleX),
+            Bottom = (int)((y + h) * dpiScaleY)
+        };
         bool found = false;
 
         MonitorEnumProc callback = (hMonitor, _, _, _) =>

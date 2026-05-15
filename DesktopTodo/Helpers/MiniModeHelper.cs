@@ -23,6 +23,15 @@ public class MiniModeHelper
     private double _normalLeft, _normalTop, _normalWidth, _normalHeight;
     private const double MiniIconSize = 48;
 
+    /// <summary>保存的正常模式窗口位置（供外部读取）</summary>
+    public double NormalLeft => _normalLeft;
+    /// <summary>保存的正常模式窗口位置（供外部读取）</summary>
+    public double NormalTop => _normalTop;
+    /// <summary>保存的正常模式窗口尺寸（供外部读取）</summary>
+    public double NormalWidth => _normalWidth;
+    /// <summary>保存的正常模式窗口尺寸（供外部读取）</summary>
+    public double NormalHeight => _normalHeight;
+
     // 迷你模式拖拽状态
     private bool _isDraggingMini;
     private int _dragStartMouseX;

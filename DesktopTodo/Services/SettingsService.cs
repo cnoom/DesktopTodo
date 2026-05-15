@@ -78,13 +78,13 @@ public class SettingsService : ISettingsService
                 var color = (Color)ColorConverter.ConvertFromString(tfc.GetString()!);
                 TaskFontColor = color;
             }
-            if (root.TryGetProperty("WindowLeft", out var wl))
+            if (root.TryGetProperty("WindowLeft", out var wl) && wl.ValueKind != JsonValueKind.Null)
                 WindowLeft = wl.GetDouble();
-            if (root.TryGetProperty("WindowTop", out var wt))
+            if (root.TryGetProperty("WindowTop", out var wt) && wt.ValueKind != JsonValueKind.Null)
                 WindowTop = wt.GetDouble();
-            if (root.TryGetProperty("WindowWidth", out var ww))
+            if (root.TryGetProperty("WindowWidth", out var ww) && ww.ValueKind != JsonValueKind.Null)
                 WindowWidth = ww.GetDouble();
-            if (root.TryGetProperty("WindowHeight", out var wh))
+            if (root.TryGetProperty("WindowHeight", out var wh) && wh.ValueKind != JsonValueKind.Null)
                 WindowHeight = wh.GetDouble();
             if (root.TryGetProperty("MiniModeLeft", out var mml) && mml.ValueKind != JsonValueKind.Null)
                 MiniModeLeft = mml.GetDouble();

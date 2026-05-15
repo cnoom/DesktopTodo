@@ -84,6 +84,20 @@ public partial class App : Application
         _mainWindow.Show();
     }
 
+    protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
+    {
+        // 系统关机/重启/注销时，允许正常关闭并保存窗口位置
+        _isExiting = true;
+
+        if (_mainWindow != null)
+        {
+            _mainWindow.SaveWindowPosition();
+            _mainWindow.VM.SaveSettingsCommand.Execute(null);
+        }
+
+        base.OnSessionEnding(e);
+    }
+
     /// <summary>
     /// 是否正在真正退出应用
     /// </summary>
@@ -120,13 +134,22 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// 显示主窗口
+    /// 显示主窗口，包含位置验证和窗口状态恢复
     /// </summary>
     private void ShowMainWindow()
     {
         if (_mainWindow == null) return;
 
+        // 验证窗口位置是否在屏幕上，不在则重置到中央
+        if (!WindowPositionHelper.IsPositionOnScreen(
+            _mainWindow.Left, _mainWindow.Top,
+            _mainWindow.Width, _mainWindow.Height))
+        {
+            WindowPositionHelper.ResetToScreenCenter(_mainWindow);
+        }
+
         _mainWindow.Show();
+        _mainWindow.Activate();
         _trayIcon!.SetHiddenState(false);
     }
 
